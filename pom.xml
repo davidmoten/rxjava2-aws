@@ -19,12 +19,13 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <maven.compiler.target>1.6</maven.compiler.target>
+        <maven.compiler.target>1.8</maven.compiler.target>
         <rxjava.version>1.1.10</rxjava.version>
         <jmh.version>1.11.1</jmh.version>
         <exec.version>1.4.0</exec.version>
         <slf4j.version>1.7.12</slf4j.version>
 
+        <aws.sdk.version>1.11.34</aws.sdk.version>
         <cobertura.version>2.7</cobertura.version>
         <checkstyle.version>2.16</checkstyle.version>
         <findbugs.version>2.5.4</findbugs.version>
@@ -60,7 +61,7 @@
         <url>https://github.com/davidmoten/rxjava-aws/issues</url>
     </issueManagement>
 
-    <inceptionYear>2013</inceptionYear>
+    <inceptionYear>2016</inceptionYear>
     <developers>
         <developer>
             <id>dave</id>
@@ -78,7 +79,7 @@
         <connection>scm:git:https://github.com/davidmoten/rxjava-aws.git</connection>
         <developerConnection>scm:git:https://github.com/davidmoten/rxjava-aws.git</developerConnection>
         <url>scm:git:https://github.com:davidmoten/rxjava-aws.git</url>
-        <tag>0.7.1-RC6</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <dependencies>
@@ -87,19 +88,30 @@
             <artifactId>rxjava</artifactId>
             <version>${rxjava.version}</version>
         </dependency>
+        
+         <dependency>
+            <groupId>com.github.davidmoten</groupId>
+            <artifactId>rxjava-extras</artifactId>
+            <version>0.7.9.15</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-s3</artifactId>
+            <version>${aws.sdk.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-sqs</artifactId>
+            <version>${aws.sdk.version}</version>
+        </dependency>
 
         <!-- Test Dependencies -->
         <dependency>
             <groupId>com.github.davidmoten</groupId>
             <artifactId>rxjava-slf4j</artifactId>
             <version>0.5.4</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.mapdb</groupId>
-            <artifactId>thread-weaver</artifactId>
-            <version>3.0.mapdb</version>
             <scope>test</scope>
         </dependency>
 
@@ -132,40 +144,11 @@
         </dependency>
 
         <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
-            <version>2.0.31-beta</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.openjdk.jmh</groupId>
-            <artifactId>jmh-core</artifactId>
-            <version>${jmh.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>19.0</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.esotericsoftware</groupId>
-            <artifactId>kryo</artifactId>
-            <version>3.0.3</version>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
             <groupId>com.github.davidmoten</groupId>
             <artifactId>junit-extras</artifactId>
             <version>0.3</version>
             <scope>test</scope>
         </dependency>
-
 
     </dependencies>
 
@@ -173,7 +156,7 @@
         <plugins>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.3</version>
+                <version>3.5.1</version>
                 <configuration>
                     <source>${maven.compiler.target}</source>
                     <target>${maven.compiler.target}</target>
@@ -297,69 +280,5 @@
             </plugin>
         </plugins>
     </build>
-
-    <profiles>
-        <profile>
-            <id>benchmark</id>
-            <dependencies>
-                <dependency>
-                    <groupId>org.openjdk.jmh</groupId>
-                    <artifactId>jmh-generator-annprocess</artifactId>
-                    <version>${jmh.version}</version>
-                    <scope>test</scope>
-                </dependency>
-            </dependencies>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>exec-maven-plugin</artifactId>
-                        <version>${exec.version}</version>
-                        <executions>
-                            <execution>
-                                <id>run-benchmarks</id>
-                                <phase>integration-test</phase>
-                                <goals>
-                                    <goal>exec</goal>
-                                </goals>
-                                <configuration>
-                                    <classpathScope>test</classpathScope>
-                                    <executable>java</executable>
-                                    <arguments>
-                                        <argument>-classpath</argument>
-                                        <classpath />
-                                        <argument>org.openjdk.jmh.Main</argument>
-                                        <!-- -h for help -->
-                                        <argument>-f</argument>
-                                        <argument>1</argument>
-                                        <argument>-i</argument>
-                                        <argument>10</argument>
-                                        <argument>-wi</argument>
-                                        <argument>8</argument>
-                                        <argument>-jvmArgs</argument>
-                                        <argument>-Xmx512m</argument>
-                                    </arguments>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
-
-    <repositories>
-        <repository>
-            <id>rxjava-snapshots</id>
-            <name>rxjava-snapshots</name>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <url>https://oss.jfrog.org/libs-snapshot</url>
-        </repository>
-    </repositories>
 
 </project>
