@@ -1,4 +1,5 @@
 package com.github.davidmoten.rx.aws;
+
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.regions.Region;
@@ -6,7 +7,11 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.sqs.AmazonSQSClient;
 
-public class AwsClients {
+public final class AwsClients {
+
+    private AwsClients() {
+        // prevent instantiation
+    }
 
     public static AmazonSQSClient createSqsClient(AWSCredentials credentials,
             ClientConfiguration cc, Regions region) {
