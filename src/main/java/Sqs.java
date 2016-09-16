@@ -70,7 +70,7 @@ public final class Sqs {
                                 return;
                             }
                             for (Message message : result.getMessages()) {
-                                if (!subscriber.isUnsubscribed()) {
+                                if (subscriber.isUnsubscribed()) {
                                     return;
                                 }
                                 String s3Id = message.getBody();
@@ -80,11 +80,15 @@ public final class Sqs {
                                 } else {
                                     S3Object object = s3.getObject(bucketName, s3Id);
                                     byte[] content = readAndClose(object.getObjectContent());
+
                                     long timestamp = object.getObjectMetadata().getLastModified()
                                             .getTime();
                                     MessageAndBytes mb = new MessageAndBytes(
                                             message.getReceiptHandle(), content, timestamp, s3Id,
                                             queueName, bucketName, s3, sqs);
+                                    if (subscriber.isUnsubscribed()) {
+                                        return;
+                                    }
                                     subscriber.onNext(mb);
                                 }
                             }
