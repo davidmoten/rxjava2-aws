@@ -21,8 +21,9 @@ Sqs.queueName("my-queue")
    .doOnError(e -> log.warn(e.getMessage(), e))
    // run in the background
    .subscribeOn(Schedulers.io())
-   // any errors then delay and resubscribe
-   .retryWhen(RetryWhen.delay(30, TimeUnit.SECONDS).build())
+   // any errors then delay and resubscribe (on an io thread)
+   .retryWhen(RetryWhen.delay(30, TimeUnit.SECONDS).build(), 
+              Schedulers.io())
    // go!
    .subscribe(subscriber);
 ```
@@ -54,7 +55,8 @@ Sqs.queueName("my-queue")
    // run in the background
    .subscribeOn(Schedulers.io())
    // any errors then delay and resubscribe
-   .retryWhen(RetryWhen.delay(30, TimeUnit.SECONDS).build())
+   .retryWhen(RetryWhen.delay(30, TimeUnit.SECONDS).build(),
+              Schedulers.io())
    // go!
    .subscribe(subscriber);
 ```  

@@ -218,7 +218,7 @@ public final class Sqs {
 				.doOnNext(System.out::println) //
 				.doOnNext(SqsMessage::deleteMessage) //
 				.doOnError(Throwable::printStackTrace) //
-				.retryWhen(RetryWhen.delay(5, TimeUnit.SECONDS).build()) //
+				.retryWhen(RetryWhen.delay(5, TimeUnit.SECONDS).build(), Schedulers.io()) //
 				.toBlocking().subscribe();
 
 		// String queueUrl = sqs.getQueueUrl(new
