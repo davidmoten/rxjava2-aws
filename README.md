@@ -24,7 +24,8 @@ Observable<SqsMessgeViaS3> messages =
        .doOnNext(System.out::println)
        .doOnNext(m -> m.deleteMessage())
 	   .subscribeOn(Schedulers.io())
-	   .retryWhen(RetryWhen.delay(delays, TimeUnit.SECONDS).build())
+	   .retryWhen(
+	       RetryWhen.delay(delays, TimeUnit.SECONDS).build())
 	   .subscribe(subscriber);
 ```  
 
