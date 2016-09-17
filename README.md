@@ -29,7 +29,7 @@ Sqs.queueName("my-queue")
 ```
 
 ##Reading messages from an AWS SQS queue via S3 storage
-SQS queues are restricted to String messages (charset?) with a maximum size of 256K. If you want to pass larger messages then one pattern is to store the message content in a resource in an S3 bucket and put the resource name on to the queue. To receive the message you read the identifier from the queue and retrieve the resource bytes from the S3 bucket. Once you've dealt with the whole message you delete the S3 resource then remove the message from the queue.  
+SQS queues are restricted to String messages (ASCII) with a maximum size of 256K (binary messages would be Base64 encoded). If you want to pass larger messages then one pattern is to store the message content in a resource in an S3 bucket and put the resource name on to the queue. To receive the message you read the identifier from the queue and retrieve the resource bytes from the S3 bucket. Once you've dealt with the whole message you delete the S3 resource then remove the message from the queue.  
 
 To support reading (and deleting) messages from an AWS queue in this way using RxJava and this library:
 
