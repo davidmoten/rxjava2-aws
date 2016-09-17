@@ -24,21 +24,20 @@ import rx.schedulers.Schedulers;
 public class SqsTest {
 
 	@Test
-	// @Ignore
 	public void test() {
-		TestSubscriber<String> ts = TestSubscriber.create();
+		TestSubscriber<Integer> ts = TestSubscriber.create();
 		MySqsClient client = new MySqsClient();
 		Sqs.queueName("queue") //
 				.sqsFactory(() -> client) //
 				.messages() //
-				.map(m -> m.message()) //
+				.map(m -> Integer.parseInt(m.message())) //
 				.doOnError(Throwable::printStackTrace) //
-				.take(25) //
+				.take(12) //
 				.subscribeOn(Schedulers.io()) //
 				.subscribe(ts);
 		ts.awaitTerminalEvent();
 		ts.assertCompleted();
-		assertEquals(IntStream.rangeClosed(1, 25).boxed().collect(Collectors.toList()), ts.getOnNextEvents());
+		assertEquals(IntStream.rangeClosed(1, 12).boxed().collect(Collectors.toList()), ts.getOnNextEvents());
 	}
 
 	public static class MySqsClient extends AmazonSQSClient {
@@ -66,7 +65,7 @@ public class SqsTest {
 		public ReceiveMessageResult receiveMessage(ReceiveMessageRequest receiveMessageRequest) {
 			System.out.println("receiveMessage");
 			try {
-				int n = (int) Math.round(Math.random() * 5);
+				int n = (int) Math.round(Math.random() * 3);
 
 				List<Message> list = IntStream.range(1, n) //
 						.mapToObj(i -> new Message() //
