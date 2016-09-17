@@ -16,7 +16,7 @@ Func0<AmazonS3Client> s3 = () -> ...;
 // retry delays (capped exponential backoff)
 Observable<Long> delays = 
     Observable
-        .just(1, 2, 4, 8, 16, 30}
+        .just(1, 2, 4, 8, 16, 30)
         .compose(Transformers.repeatLast());
         
 
