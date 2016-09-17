@@ -9,7 +9,9 @@ Status: *pre-alpha*
 Func0<AmazonSQSClient> sqs = () -> ...;
 
 Sqs.queueName("my-queue")
+    // specify factory for Amazon SQS Client
    .sqsFactory(sqs)
+   // get messages as observable
    .messages()
    .// process the message
    .doOnNext(m -> System.out.println(m.message()))
@@ -36,10 +38,12 @@ Func0<AmazonSQSClient> sqs = () -> ...;
 Func0<AmazonS3Client> s3 = () -> ...; 
 
 Sqs.queueName("my-queue")
+    // specify factory for Amazon SQS Client
    .sqsFactory(sqs)
-   .messages()
-   .s3Factory(s3)
+   // specify S3 bucket name
    .bucketName("my-bucket")
+   // specify factory for Amazon S3 Client
+   .s3Factory(s3)
    .messages()
    // process the message
    .doOnNext(System.out::println)

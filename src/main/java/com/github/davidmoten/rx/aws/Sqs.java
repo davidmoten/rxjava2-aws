@@ -51,8 +51,8 @@ public final class Sqs {
 			this.queueName = queueName;
 		}
 
-		public ViaS3Builder s3Factory(Func0<AmazonS3Client> s3Factory) {
-			this.s3 = Optional.of(s3Factory);
+		public ViaS3Builder bucketName(String bucketName) {
+			this.bucketName = Optional.of(bucketName);
 			return new ViaS3Builder(this);
 		}
 
@@ -78,6 +78,11 @@ public final class Sqs {
 
 		public SqsBuilder bucketName(String bucketName) {
 			sqsBuilder.bucketName = Optional.of(bucketName);
+			return sqsBuilder;
+		}
+		
+		public SqsBuilder s3Factory(Func0<AmazonS3Client> s3Factory) {
+			sqsBuilder.s3 = Optional.of(s3Factory);
 			return sqsBuilder;
 		}
 
@@ -206,8 +211,8 @@ public final class Sqs {
 		String queueName = bucketName;
 		Sqs.queueName(queueName) //
 				.sqsFactory(sqs) //
-				.s3Factory(s3) //
 				.bucketName(bucketName) //
+				.s3Factory(s3) //
 				.messages() //
 				.subscribeOn(Schedulers.io()) //
 				.doOnNext(System.out::println) //
