@@ -112,7 +112,9 @@ public final class Sqs {
 		Func0<AmazonS3Client> s3 = () -> new AmazonS3Client(credentials, cc)
 				.withRegion(Region.getRegion(Regions.AP_SOUTHEAST_2));
 		messagesViaS3(s3, sqs, "cts-gateway-requests", "cts-gateway-requests") //
-				.subscribeOn(Schedulers.io()).toBlocking().subscribe();
+				.subscribeOn(Schedulers.io()) //
+				.doOnNext(SqsMessageViaS3::deleteMessage) //
+				.toBlocking().subscribe();
 
 		// String queueUrl = sqs.getQueueUrl(new
 		// GetQueueUrlRequest("cts-gateway-requests"))
