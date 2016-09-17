@@ -218,7 +218,7 @@ public final class Sqs {
 				.subscribeOn(Schedulers.io()) //
 				.doOnNext(System.out::println) //
 				.doOnNext(SqsMessage::deleteMessage) //
-				.doOnError(Throwable::printStackTrace) //
+				.doOnError(e -> {e.printStackTrace();System.out.println(Thread.currentThread().getName());}) //
 				.retryWhen(RetryWhen.delay(5, TimeUnit.SECONDS).build(), Schedulers.io()) //
 				.toBlocking().subscribe();
 
