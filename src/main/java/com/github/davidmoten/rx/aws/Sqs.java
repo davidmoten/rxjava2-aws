@@ -104,8 +104,6 @@ public final class Sqs {
 			Optional<Func0<AmazonS3Client>> s3ClientFactory, Func0<AmazonSQSClient> sqsClientFactory, String queueName,
 			Optional<String> bucketName) {
 
-		// TODO support backpressure properly
-
 		return Observable.using(() -> s3ClientFactory.map(Func0::call), //
 				s3 -> createObservable(sqs, s3ClientFactory, sqsClientFactory, queueName, bucketName, s3),
 				s3 -> s3.ifPresent(AmazonS3Client::shutdown));
