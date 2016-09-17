@@ -37,6 +37,7 @@ Note particularly the call to `m.deleteMessage()`. If the source of messages has
 The result is that `deleteMessage()` will work quite happily even if the source has been disconnected:
 
 ```java
+// get just one message
 SqsMessageViaS3 message = 
     Sqs.messagesViaS3(s3, sqs, queueName, bucketName)
        .subscribeOn(Schedulers.io())
