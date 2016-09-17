@@ -1,11 +1,14 @@
 package com.github.davidmoten.rx.aws;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;
@@ -23,18 +26,19 @@ public class SqsTest {
 	@Test
 	// @Ignore
 	public void test() {
-		TestSubscriber<SqsMessage> ts = TestSubscriber.create();
+		TestSubscriber<String> ts = TestSubscriber.create();
 		MySqsClient client = new MySqsClient();
 		Sqs.queueName("queue") //
 				.sqsFactory(() -> client) //
 				.messages() //
-				.doOnNext(m -> System.out.println(m.message())) //
+				.map(m -> m.message()) //
 				.doOnError(Throwable::printStackTrace) //
-				.take(1000) //
+				.take(25) //
 				.subscribeOn(Schedulers.io()) //
 				.subscribe(ts);
 		ts.awaitTerminalEvent();
 		ts.assertCompleted();
+		assertEquals(IntStream.rangeClosed(1, 25).boxed().collect(Collectors.toList()), ts.getOnNextEvents());
 	}
 
 	public static class MySqsClient extends AmazonSQSClient {
@@ -44,7 +48,7 @@ public class SqsTest {
 			System.out.println("created");
 		}
 
-		int count;
+		int count = 1;
 		final Set<String> messages = new HashSet<String>();
 
 		@Override
@@ -62,7 +66,7 @@ public class SqsTest {
 		public ReceiveMessageResult receiveMessage(ReceiveMessageRequest receiveMessageRequest) {
 			System.out.println("receiveMessage");
 			try {
-				int n = (int) Math.round(Math.random() * 300);
+				int n = (int) Math.round(Math.random() * 5);
 
 				List<Message> list = IntStream.range(1, n) //
 						.mapToObj(i -> new Message() //
