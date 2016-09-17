@@ -196,6 +196,7 @@ public final class Sqs {
 		}
 	}
 
+	@SuppressWarnings("unused")
 	public static void main(String[] args) {
 		ClientConfiguration cc;
 		if (false)
