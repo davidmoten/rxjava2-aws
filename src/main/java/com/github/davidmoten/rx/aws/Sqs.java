@@ -80,7 +80,7 @@ public final class Sqs {
 			sqsBuilder.bucketName = Optional.of(bucketName);
 			return sqsBuilder;
 		}
-		
+
 		public SqsBuilder s3Factory(Func0<AmazonS3Client> s3Factory) {
 			sqsBuilder.s3 = Optional.of(s3Factory);
 			return sqsBuilder;
@@ -125,7 +125,7 @@ public final class Sqs {
 
 			@Override
 			protected State generateState() {
-				queueUrl = sqs.getQueueUrl(new GetQueueUrlRequest(queueName)).getQueueUrl();
+				queueUrl = sqs.getQueueUrl(queueName).getQueueUrl();
 				request = new ReceiveMessageRequest(queueUrl) //
 						.withWaitTimeSeconds(20) //
 						.withMaxNumberOfMessages(10);
@@ -218,7 +218,10 @@ public final class Sqs {
 				.subscribeOn(Schedulers.io()) //
 				.doOnNext(System.out::println) //
 				.doOnNext(SqsMessage::deleteMessage) //
-				.doOnError(e -> {e.printStackTrace();System.out.println(Thread.currentThread().getName());}) //
+				.doOnError(e -> {
+					e.printStackTrace();
+					System.out.println(Thread.currentThread().getName());
+				}) //
 				.retryWhen(RetryWhen.delay(5, TimeUnit.SECONDS).build(), Schedulers.io()) //
 				.toBlocking().subscribe();
 
