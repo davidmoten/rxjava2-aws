@@ -12,7 +12,7 @@ Sqs.queueName("my-queue")
    .sqsFactory(sqs)
    .messages()
    .// process the message
-   .doOnNext(System.out::println)
+   .doOnNext(m -> System.out.println(m.message()))
    // delete the message (if processing succeeded)
    .doOnNext(m -> m.deleteMessage())
    // log any errors
