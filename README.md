@@ -24,6 +24,7 @@ Sqs.messagesViaS3(s3, sqs, queueName, bucketName)
    .subscribeOn(Schedulers.io())
    // any errors then delay and resubscribe
    .retryWhen(RetryWhen.delay(30, TimeUnit.SECONDS).build())
+   // go!
    .subscribe(subscriber);
 ```  
 ##Deleting messages from the queue
