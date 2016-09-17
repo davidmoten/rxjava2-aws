@@ -13,13 +13,6 @@ To support reading (and deleting) messages from an AWS queue in this way using R
 Func0<AmazonSQSClient> sqs = () -> ...;
 Func0<AmazonS3Client> s3 = () -> ...; 
 
-// retry delays (capped exponential backoff)
-Observable<Long> delays = 
-    Observable
-        .just(1, 2, 4, 8, 16, 30)
-        .compose(Transformers.repeatLast());
-        
-
 Sqs.messagesViaS3(s3, sqs, queueName, bucketName)
    // process the message
    .doOnNext(System.out::println)
@@ -27,8 +20,7 @@ Sqs.messagesViaS3(s3, sqs, queueName, bucketName)
    .doOnNext(m -> m.deleteMessage())
    .subscribeOn(Schedulers.io())
    // any errors then delay and resubscribe
-   .retryWhen(
-       RetryWhen.delay(delays, TimeUnit.SECONDS).build())
+   .retryWhen(RetryWhen.delay(30, TimeUnit.SECONDS).build())
    .subscribe(subscriber);
 ```  
 ##Deleting messages from the queue
