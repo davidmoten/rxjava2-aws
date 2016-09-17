@@ -125,7 +125,6 @@ public final class Sqs {
 
 			@Override
 			protected State generateState() {
-				System.out.println(sqs.getClass().getName());
 				queueUrl = sqs.getQueueUrl(queueName).getQueueUrl();
 				request = new ReceiveMessageRequest(queueUrl) //
 						.withWaitTimeSeconds(20) //
@@ -144,7 +143,6 @@ public final class Sqs {
 					}
 					getNextMessage(sqs, bucketName, s3, service, observer, q, next);
 				}
-				System.out.println("called observer.onNext with " + next.get().message());
 				observer.onNext(next.get());
 				return state;
 			}
