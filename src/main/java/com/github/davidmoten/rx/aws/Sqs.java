@@ -102,54 +102,61 @@ public final class Sqs {
 			Optional<String> bucketName) {
 
 		// TODO support backpressure properly
+		
 		return Observable.using(() -> s3ClientFactory.map(Func0::call), //
-				s3 -> Observable.create(new OnSubscribe<SqsMessage>() {
+				s3 -> createObservable(sqs, s3ClientFactory, sqsClientFactory, queueName, bucketName, s3), s3 -> s3.ifPresent(AmazonS3Client::shutdown));
 
-					final Service service = new Service(s3ClientFactory, sqsClientFactory, s3, sqs, queueName,
-							bucketName);
+	}
 
-					@Override
-					public void call(Subscriber<? super SqsMessage> subscriber) {
-						String queueUrl = sqs.getQueueUrl(new GetQueueUrlRequest(queueName)).getQueueUrl();
-						ReceiveMessageRequest request = new ReceiveMessageRequest(queueUrl) //
-								.withWaitTimeSeconds(20) //
-								.withMaxNumberOfMessages(10);
-						while (!subscriber.isUnsubscribed()) {
-							ReceiveMessageResult result = sqs.receiveMessage(request);
-							if (!subscriber.isUnsubscribed()) {
+	private static Observable<SqsMessage> createObservable(AmazonSQSClient sqs,
+			Optional<Func0<AmazonS3Client>> s3ClientFactory, Func0<AmazonSQSClient> sqsClientFactory, String queueName,
+			Optional<String> bucketName, Optional<AmazonS3Client> s3) {
+		return Observable.create(new OnSubscribe<SqsMessage>() {
+
+			final Service service = new Service(s3ClientFactory, sqsClientFactory, s3, sqs, queueName,
+					bucketName);
+
+			@Override
+			public void call(Subscriber<? super SqsMessage> subscriber) {
+				String queueUrl = sqs.getQueueUrl(new GetQueueUrlRequest(queueName)).getQueueUrl();
+				ReceiveMessageRequest request = new ReceiveMessageRequest(queueUrl) //
+						.withWaitTimeSeconds(20) //
+						.withMaxNumberOfMessages(10);
+				while (!subscriber.isUnsubscribed()) {
+					ReceiveMessageResult result = sqs.receiveMessage(request);
+					if (!subscriber.isUnsubscribed()) {
+						return;
+					}
+					for (Message message : result.getMessages()) {
+						if (subscriber.isUnsubscribed()) {
+							return;
+						}
+						if (bucketName.isPresent()) {
+							String s3Id = message.getBody();
+							if (!s3.get().doesObjectExist(bucketName.get(), s3Id)) {
+								sqs.deleteMessage(
+										new DeleteMessageRequest(queueUrl, message.getReceiptHandle()));
+							} else {
+								S3Object object = s3.get().getObject(bucketName.get(), s3Id);
+								byte[] content = readAndClose(object.getObjectContent());
+								long timestamp = object.getObjectMetadata().getLastModified().getTime();
+								SqsMessage mb = new SqsMessage(message.getReceiptHandle(), content, timestamp,
+										Optional.of(s3Id), service);
+							}
+						} else {
+							sqs.sendMessage(queueUrl, "");
+							SqsMessage mb = new SqsMessage(message.getReceiptHandle(),
+									message.getBody().getBytes(StandardCharsets.UTF_8),
+									System.currentTimeMillis(), Optional.empty(), service);
+							if (subscriber.isUnsubscribed()) {
 								return;
 							}
-							for (Message message : result.getMessages()) {
-								if (subscriber.isUnsubscribed()) {
-									return;
-								}
-								if (bucketName.isPresent()) {
-									String s3Id = message.getBody();
-									if (!s3.get().doesObjectExist(bucketName.get(), s3Id)) {
-										sqs.deleteMessage(
-												new DeleteMessageRequest(queueUrl, message.getReceiptHandle()));
-									} else {
-										S3Object object = s3.get().getObject(bucketName.get(), s3Id);
-										byte[] content = readAndClose(object.getObjectContent());
-										long timestamp = object.getObjectMetadata().getLastModified().getTime();
-										SqsMessage mb = new SqsMessage(message.getReceiptHandle(), content, timestamp,
-												Optional.of(s3Id), service);
-									}
-								} else {
-									sqs.sendMessage(queueUrl, "");
-									SqsMessage mb = new SqsMessage(message.getReceiptHandle(),
-											message.getBody().getBytes(StandardCharsets.UTF_8),
-											System.currentTimeMillis(), Optional.empty(), service);
-									if (subscriber.isUnsubscribed()) {
-										return;
-									}
-									subscriber.onNext(mb);
-								}
-							}
+							subscriber.onNext(mb);
 						}
 					}
-				}).onBackpressureBuffer(), s3 -> s3.ifPresent(AmazonS3Client::shutdown));
-
+				}
+			}
+		}).onBackpressureBuffer();
 	}
 
 	private static byte[] readAndClose(InputStream is) {
