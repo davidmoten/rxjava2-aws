@@ -38,7 +38,7 @@ public final class Sqs {
 				sqs -> createObservable(sqs, s3ClientFactory, sqsClientFactory, queueName, bucketName),
 				sqs -> sqs.shutdown());
 	}
-
+	
 	private static Observable<SqsMessageViaS3> createObservable(AmazonSQSClient sqs,
 			Func0<AmazonS3Client> s3ClientFactory, Func0<AmazonSQSClient> sqsClientFactory, String queueName,
 			String bucketName) {
