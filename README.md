@@ -45,6 +45,7 @@ Sqs.queueName("my-queue")
    .bucketName("my-bucket")
    // specify factory for Amazon S3 Client
    .s3Factory(s3)
+   // get messages as observable
    .messages()
    // process the message
    .doOnNext(System.out::println)
