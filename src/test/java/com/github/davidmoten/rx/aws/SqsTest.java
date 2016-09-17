@@ -66,8 +66,8 @@ public class SqsTest {
 
 				List<Message> list = IntStream.range(1, n) //
 						.mapToObj(i -> new Message() //
-								.withBody(i + "") //
-								.withReceiptHandle(i + "")) //
+								.withBody(count++ + "") //
+								.withReceiptHandle(count + "")) //
 						.peek(m -> messages.add(m.getBody())) //
 						.collect(Collectors.toList());
 				Thread.sleep(Math.round(Math.random() * 1000));
