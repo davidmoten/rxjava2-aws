@@ -55,7 +55,7 @@ Sqs.queueName("my-queue")
    .subscribe(subscriber);
 ```  
 ##Deleting messages from the queue
-`deleteMessage()` will work quite happily even if the source has been terminated/unsubscribed. While the source has not been terminated you get slightly better performance because the sources sqs and s3 client objects can be used to perform the delete.
+`deleteMessage()` will work quite happily even if the source has been terminated/unsubscribed. While the source has not been terminated you get slightly better performance because the source's sqs and s3 client objects can be used to perform the delete.
 
 ```java
 // get just one message
