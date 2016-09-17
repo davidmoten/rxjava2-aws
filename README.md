@@ -18,6 +18,9 @@ Sqs.messagesViaS3(s3, sqs, queueName, bucketName)
    .doOnNext(System.out::println)
    // delete the message (if processing succeeded)
    .doOnNext(m -> m.deleteMessage())
+   // log any errors
+   .doOnError(e -> log.warn(e.getMessage(), e))
+   // run in the background
    .subscribeOn(Schedulers.io())
    // any errors then delay and resubscribe
    .retryWhen(RetryWhen.delay(30, TimeUnit.SECONDS).build())
