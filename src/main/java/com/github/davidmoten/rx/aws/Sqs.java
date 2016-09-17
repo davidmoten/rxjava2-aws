@@ -32,13 +32,13 @@ public final class Sqs {
 		// prevent instantiation
 	}
 
-	public static Observable<SqsMessageViaS3> messagesViaS3(Func0<AmazonS3Client> s3ClientFactory,
-			Func0<AmazonSQSClient> sqsClientFactory, String queueName, String bucketName) {
+	public static Observable<SqsMessageViaS3> messagesViaS3(Func0<AmazonSQSClient> sqsClientFactory,
+			Func0<AmazonS3Client> s3ClientFactory, String queueName, String bucketName) {
 		return Observable.using(sqsClientFactory,
 				sqs -> createObservable(sqs, s3ClientFactory, sqsClientFactory, queueName, bucketName),
 				sqs -> sqs.shutdown());
 	}
-	
+
 	private static Observable<SqsMessageViaS3> createObservable(AmazonSQSClient sqs,
 			Func0<AmazonS3Client> s3ClientFactory, Func0<AmazonSQSClient> sqsClientFactory, String queueName,
 			String bucketName) {
@@ -111,7 +111,7 @@ public final class Sqs {
 				.withRegion(Region.getRegion(Regions.AP_SOUTHEAST_2));
 		Func0<AmazonS3Client> s3 = () -> new AmazonS3Client(credentials, cc)
 				.withRegion(Region.getRegion(Regions.AP_SOUTHEAST_2));
-		messagesViaS3(s3, sqs, "cts-gateway-requests", "cts-gateway-requests") //
+		messagesViaS3(sqs, s3, "cts-gateway-requests", "cts-gateway-requests") //
 				.subscribeOn(Schedulers.io()) //
 				.doOnNext(SqsMessageViaS3::deleteMessage) //
 				.toBlocking().subscribe();

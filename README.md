@@ -13,7 +13,7 @@ To support reading (and deleting) messages from an AWS queue in this way using R
 Func0<AmazonSQSClient> sqs = () -> ...;
 Func0<AmazonS3Client> s3 = () -> ...; 
 
-Sqs.messagesViaS3(s3, sqs, queueName, bucketName)
+Sqs.messagesViaS3(sqs, s3, queueName, bucketName)
    // process the message
    .doOnNext(System.out::println)
    // delete the message (if processing succeeded)
@@ -35,7 +35,7 @@ The result is that `deleteMessage()` will work quite happily even if the source 
 ```java
 // get just one message
 SqsMessageViaS3 message = 
-    Sqs.messagesViaS3(s3, sqs, queueName, bucketName)
+    Sqs.messagesViaS3(sqs, s3, queueName, bucketName)
        .subscribeOn(Schedulers.io())
         .first().toBlocking().single();
 // this will still work fine        
