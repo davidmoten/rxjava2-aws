@@ -4,6 +4,9 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
@@ -18,7 +21,9 @@ import com.amazonaws.services.sqs.model.GetQueueUrlRequest;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
-import com.github.davidmoten.rx.aws.SqsMessageViaS3.Service;
+import com.github.davidmoten.rx.RetryWhen;
+import com.github.davidmoten.rx.aws.SqsMessage.Service;
+import com.github.davidmoten.util.Preconditions;
 
 import rx.Observable;
 import rx.Observable.OnSubscribe;
@@ -32,25 +37,79 @@ public final class Sqs {
 		// prevent instantiation
 	}
 
-	public static Observable<SqsMessageViaS3> messagesViaS3(Func0<AmazonSQSClient> sqsClientFactory,
-			Func0<AmazonS3Client> s3ClientFactory, String queueName, String bucketName) {
+	public static final class SqsBuilder {
+		private final String queueName;
+		private Func0<AmazonSQSClient> sqs = null;
+		private Optional<Func0<AmazonS3Client>> s3 = Optional.empty();
+		private Optional<String> bucketName = Optional.empty();
+
+		SqsBuilder(String queueName) {
+			Preconditions.checkNotNull(queueName);
+			this.queueName = queueName;
+		}
+
+		public ViaS3Builder s3Factory(Func0<AmazonS3Client> s3Factory) {
+			this.s3 = Optional.of(s3Factory);
+			return new ViaS3Builder(this);
+		}
+
+		public SqsBuilder sqsFactory(Func0<AmazonSQSClient> sqsFactory) {
+			this.sqs = sqsFactory;
+			return this;
+		}
+
+		public Observable<SqsMessage> messages() {
+			Preconditions.checkNotNull(sqs, "client must not be null");
+			return Sqs.messages(sqs, s3, queueName, bucketName);
+		}
+
+	}
+
+	public static final class ViaS3Builder {
+
+		private final SqsBuilder sqsBuilder;
+
+		public ViaS3Builder(SqsBuilder sqsBuilder) {
+			this.sqsBuilder = sqsBuilder;
+		}
+
+		public SqsBuilder bucketName(String bucketName) {
+			sqsBuilder.bucketName = Optional.of(bucketName);
+			return sqsBuilder;
+		}
+
+	}
+
+	public static SqsBuilder queueName(String queueName) {
+		return new SqsBuilder(queueName);
+	}
+
+	static Observable<SqsMessage> messages(Func0<AmazonSQSClient> sqsClientFactory,
+			Optional<Func0<AmazonS3Client>> s3ClientFactory, String queueName, Optional<String> bucketName) {
+		Preconditions.checkNotNull(sqsClientFactory);
+		Preconditions.checkNotNull(s3ClientFactory);
+		Preconditions.checkNotNull(queueName);
+		Preconditions.checkNotNull(bucketName);
+		Preconditions.checkArgument(!s3ClientFactory.isPresent() || bucketName.isPresent(),
+				"bucketName must be specified if an s3ClientFactory is present");
 		return Observable.using(sqsClientFactory,
 				sqs -> createObservable(sqs, s3ClientFactory, sqsClientFactory, queueName, bucketName),
 				sqs -> sqs.shutdown());
 	}
 
-	private static Observable<SqsMessageViaS3> createObservable(AmazonSQSClient sqs,
-			Func0<AmazonS3Client> s3ClientFactory, Func0<AmazonSQSClient> sqsClientFactory, String queueName,
-			String bucketName) {
+	private static Observable<SqsMessage> createObservable(AmazonSQSClient sqs,
+			Optional<Func0<AmazonS3Client>> s3ClientFactory, Func0<AmazonSQSClient> sqsClientFactory, String queueName,
+			Optional<String> bucketName) {
 
-		return Observable.using(s3ClientFactory, //
-				s3 -> Observable.create(new OnSubscribe<SqsMessageViaS3>() {
+		// TODO support backpressure properly
+		return Observable.using(() -> s3ClientFactory.map(Func0::call), //
+				s3 -> Observable.create(new OnSubscribe<SqsMessage>() {
 
 					final Service service = new Service(s3ClientFactory, sqsClientFactory, s3, sqs, queueName,
 							bucketName);
 
 					@Override
-					public void call(Subscriber<? super SqsMessageViaS3> subscriber) {
+					public void call(Subscriber<? super SqsMessage> subscriber) {
 						String queueUrl = sqs.getQueueUrl(new GetQueueUrlRequest(queueName)).getQueueUrl();
 						ReceiveMessageRequest request = new ReceiveMessageRequest(queueUrl) //
 								.withWaitTimeSeconds(20) //
@@ -64,16 +123,23 @@ public final class Sqs {
 								if (subscriber.isUnsubscribed()) {
 									return;
 								}
-								String s3Id = message.getBody();
-								if (!s3.doesObjectExist(bucketName, s3Id)) {
-									sqs.deleteMessage(new DeleteMessageRequest(queueUrl, message.getReceiptHandle()));
+								if (bucketName.isPresent()) {
+									String s3Id = message.getBody();
+									if (!s3.get().doesObjectExist(bucketName.get(), s3Id)) {
+										sqs.deleteMessage(
+												new DeleteMessageRequest(queueUrl, message.getReceiptHandle()));
+									} else {
+										S3Object object = s3.get().getObject(bucketName.get(), s3Id);
+										byte[] content = readAndClose(object.getObjectContent());
+										long timestamp = object.getObjectMetadata().getLastModified().getTime();
+										SqsMessage mb = new SqsMessage(message.getReceiptHandle(), content, timestamp,
+												Optional.of(s3Id), service);
+									}
 								} else {
-									S3Object object = s3.getObject(bucketName, s3Id);
-									byte[] content = readAndClose(object.getObjectContent());
-
-									long timestamp = object.getObjectMetadata().getLastModified().getTime();
-									SqsMessageViaS3 mb = new SqsMessageViaS3(message.getReceiptHandle(), content,
-											timestamp, s3Id, service);
+									sqs.sendMessage(queueUrl, "");
+									SqsMessage mb = new SqsMessage(message.getReceiptHandle(),
+											message.getBody().getBytes(StandardCharsets.UTF_8),
+											System.currentTimeMillis(), Optional.empty(), service);
 									if (subscriber.isUnsubscribed()) {
 										return;
 									}
@@ -82,7 +148,7 @@ public final class Sqs {
 							}
 						}
 					}
-				}).onBackpressureBuffer(), s3 -> s3.shutdown());
+				}).onBackpressureBuffer(), s3 -> s3.ifPresent(AmazonS3Client::shutdown));
 
 	}
 
@@ -111,9 +177,18 @@ public final class Sqs {
 				.withRegion(Region.getRegion(Regions.AP_SOUTHEAST_2));
 		Func0<AmazonS3Client> s3 = () -> new AmazonS3Client(credentials, cc)
 				.withRegion(Region.getRegion(Regions.AP_SOUTHEAST_2));
-		messagesViaS3(sqs, s3, "cts-gateway-requests", "cts-gateway-requests") //
+		String bucketName = "cts-gateway-requests";
+		String queueName = bucketName;
+		Sqs.queueName(queueName) //
+				.sqsFactory(sqs) //
+				.s3Factory(s3) //
+				.bucketName(bucketName) //
+				.messages() //
 				.subscribeOn(Schedulers.io()) //
-				.doOnNext(SqsMessageViaS3::deleteMessage) //
+				.doOnNext(System.out::println) //
+				.doOnNext(SqsMessage::deleteMessage) //
+				.doOnError(Throwable::printStackTrace) //
+				.retryWhen(RetryWhen.delay(5, TimeUnit.SECONDS).build()) //
 				.toBlocking().subscribe();
 
 		// String queueUrl = sqs.getQueueUrl(new
