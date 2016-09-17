@@ -21,9 +21,12 @@ Observable<Long> delays =
         
 Observable<SqsMessgeViaS3> messages = 
     Sqs.messagesViaS3(s3, sqs, queueName, bucketName)
+       //process the message
        .doOnNext(System.out::println)
+       // delete the message (if processing succeeded)
        .doOnNext(m -> m.deleteMessage())
 	   .subscribeOn(Schedulers.io())
+	   // any errors then delay and resubscribe
 	   .retryWhen(
 	       RetryWhen.delay(delays, TimeUnit.SECONDS).build())
 	   .subscribe(subscriber);
