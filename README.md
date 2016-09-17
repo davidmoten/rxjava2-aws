@@ -1,4 +1,9 @@
 # rxjava-aws
+<a href="https://travis-ci.org/davidmoten/rxjava-aws"><img src="https://travis-ci.org/davidmoten/rxjava-aws.svg"/></a><br/>
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.davidmoten/rxjava-aws/badge.svg?style=flat)](https://maven-badges.herokuapp.com/maven-central/com.github.davidmoten/rxjava-aws)<br/>
+<!--[![Dependency Status](https://gemnasium.com/com.github.davidmoten/rxjava-aws.svg)](https://gemnasium.com/com.github.davidmoten/rxjava-aws)-->
+[![codecov](https://codecov.io/gh/davidmoten/rxjava-aws/branch/master/graph/badge.svg)](https://codecov.io/gh/davidmoten/rxjava-aws)
+
 RxJava 1.x utilities for AWS (SQS, S3, ...)
 
 Status: *pre-alpha*
