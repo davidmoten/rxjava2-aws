@@ -5,7 +5,7 @@ Status: *pre-alpha*
 
 ##Reading messages from an AWS SQS queue
 
-One solution to passing arbitrary size messages through SQS is to submit an identifier ((using `UUID.randomUUID().toString()`) to an SQS queue where the identifier is the name of a resource in an S3 bucket. This is a useful pattern to meet the AWS imposed constraints on SQS message size (max 256K) and favours scalable consumption of messages from the queue (if you can put up with a little bit of S3 latency).
+One solution to passing arbitrary size messages through SQS is to submit an identifier (using `UUID.randomUUID().toString()`) to an SQS queue where the identifier is the name of a resource in an S3 bucket. This is a useful pattern to meet the AWS imposed constraints on SQS message size (max 256K) and favours scalable consumption of messages from the queue (if you can put up with a little bit of S3 latency).
 
 To support reading (and deleting) messages from an AWS queue in this way using RxJava and this library:
 
