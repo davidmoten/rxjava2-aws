@@ -10,6 +10,7 @@ import java.util.stream.IntStream;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.DeleteMessageResult;
@@ -38,6 +39,30 @@ public class SqsTest {
 		ts.awaitTerminalEvent();
 		ts.assertCompleted();
 		assertEquals(IntStream.rangeClosed(1, 12).boxed().collect(Collectors.toList()), ts.getOnNextEvents());
+	}
+
+	@Test
+	public void testMocked() {
+		AmazonSQSClient sqs = Mockito.mock(AmazonSQSClient.class);
+		String queueName = "queue";
+		Mockito.when(sqs.getQueueUrl(queueName)).thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
+		Mockito.when(sqs.receiveMessage(Mockito.<ReceiveMessageRequest>any()))
+				.thenReturn(new ReceiveMessageResult().withMessages(new Message().withBody("body1"))); 
+		TestSubscriber<String> ts = TestSubscriber.create();
+		Sqs.queueName(queueName) //
+				.sqsFactory(() -> sqs) //
+				.messages() //
+				.map(m -> m.message()) //
+				.doOnError(Throwable::printStackTrace) //
+				.take(1) //
+				.subscribe(ts);
+		ts.awaitTerminalEvent();
+		ts.assertCompleted();
+		ts.assertValue("body1");
+		Mockito.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(queueName);
+		Mockito.verify(sqs, Mockito.times(1)).receiveMessage(Mockito.<ReceiveMessageRequest>any());
+		Mockito.verify(sqs, Mockito.times(1)).shutdown();
+		Mockito.verifyNoMoreInteractions(sqs);
 	}
 
 	public static class MySqsClient extends AmazonSQSClient {
