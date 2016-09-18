@@ -6,6 +6,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.Date;
 
 import org.junit.Test;
+import org.mockito.InOrder;
 import org.mockito.Mockito;
 
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -122,8 +123,9 @@ public class SqsTest {
 		String queueName = "queue";
 		String s3Id = "123";
 		Mockito.when(sqs.getQueueUrl(queueName)).thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
-		Mockito.when(sqs.receiveMessage(Mockito.<ReceiveMessageRequest>any()))
-				.thenReturn(new ReceiveMessageResult().withMessages(new Message().withBody(s3Id)));
+		String receiptHandle = "abc";
+		Mockito.when(sqs.receiveMessage(Mockito.<ReceiveMessageRequest>any())).thenReturn(
+				new ReceiveMessageResult().withMessages(new Message().withReceiptHandle(receiptHandle).withBody(s3Id)));
 		String bucketName = "bucket";
 		Mockito.when(s3.doesObjectExist(bucketName, s3Id)).thenAnswer(x -> true);
 		S3Object s3Object = mock(S3Object.class);
@@ -139,6 +141,7 @@ public class SqsTest {
 				.bucketName("bucket") //
 				.s3Factory(() -> s3) //
 				.messages() //
+				.doOnNext(SqsMessage::deleteMessage) //
 				.map(m -> m.message()) //
 				.doOnError(Throwable::printStackTrace) //
 				.take(1) //
@@ -146,14 +149,17 @@ public class SqsTest {
 		ts.awaitTerminalEvent();
 		ts.assertCompleted();
 		ts.assertValues("body1");
-		Mockito.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(queueName);
-		Mockito.verify(sqs, Mockito.times(1)).receiveMessage(Mockito.<ReceiveMessageRequest>any());
-		Mockito.verify(s3, Mockito.times(1)).doesObjectExist(bucketName, s3Id);
-		Mockito.verify(sqs, Mockito.times(1)).shutdown();
-		Mockito.verify(s3, Mockito.times(1)).getObject(bucketName, s3Id);
-		Mockito.verify(s3Object, Mockito.times(1)).getObjectContent();
-		Mockito.verify(s3Object, Mockito.times(1)).getObjectMetadata();
-		Mockito.verify(s3, Mockito.times(1)).shutdown();
+		InOrder inorder = Mockito.inOrder(sqs, s3, s3Object);
+		inorder.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(queueName);
+		inorder.verify(sqs, Mockito.times(1)).receiveMessage(Mockito.<ReceiveMessageRequest>any());
+		inorder.verify(s3, Mockito.times(1)).doesObjectExist(bucketName, s3Id);
+		inorder.verify(s3, Mockito.times(1)).getObject(bucketName, s3Id);
+		inorder.verify(s3Object, Mockito.times(1)).getObjectContent();
+		inorder.verify(s3Object, Mockito.times(1)).getObjectMetadata();
+		inorder.verify(s3, Mockito.times(1)).deleteObject(bucketName, s3Id);
+		inorder.verify(sqs, Mockito.times(1)).deleteMessage(queueName, receiptHandle);
+		inorder.verify(sqs, Mockito.times(1)).shutdown();
+		inorder.verify(s3, Mockito.times(1)).shutdown();
 		Mockito.verifyNoMoreInteractions(sqs, s3, s3Object);
 	}
 
@@ -176,7 +182,7 @@ public class SqsTest {
 	// @Override
 	// public GetQueueUrlResult getQueueUrl(String queueName) {
 	// System.out.println("getQueueUrl");
-	// return new GetQueueUrlResult().withQueueUrl(queueName);
+	// return new GetQueueUrlResult().withQueueUrl(;queueName);
 	// }
 	//
 	// @Override

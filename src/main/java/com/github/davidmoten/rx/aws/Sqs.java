@@ -52,7 +52,6 @@ public final class Sqs {
 		}
 
 		public Observable<SqsMessage> messages() {
-			Preconditions.checkNotNull(sqs, "client must not be null");
 			return Sqs.messages(sqs, s3, queueName, bucketName);
 		}
 
