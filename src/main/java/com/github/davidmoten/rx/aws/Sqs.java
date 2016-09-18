@@ -1,6 +1,5 @@
 package com.github.davidmoten.rx.aws;
 
-import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -8,14 +7,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.Optional;
 import java.util.Queue;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.SystemPropertiesCredentialsProvider;
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.sqs.AmazonSQSClient;
@@ -23,7 +16,6 @@ import com.amazonaws.services.sqs.model.DeleteMessageRequest;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
-import com.github.davidmoten.rx.RetryWhen;
 import com.github.davidmoten.rx.aws.SqsMessage.Service;
 import com.github.davidmoten.util.Preconditions;
 
@@ -31,7 +23,6 @@ import rx.Observable;
 import rx.Observer;
 import rx.functions.Func0;
 import rx.observables.SyncOnSubscribe;
-import rx.schedulers.Schedulers;
 
 public final class Sqs {
 

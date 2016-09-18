@@ -31,7 +31,7 @@ public final class SqsMessage {
 	}
 	
 	public String message() {
-		return new String(bytes, StandardCharsets.UTF_8);
+		return new String(bytes(), StandardCharsets.UTF_8);
 	}
 
 	public long lastModifiedTime() {
