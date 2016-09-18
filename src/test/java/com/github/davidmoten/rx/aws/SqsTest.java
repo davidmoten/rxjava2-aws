@@ -8,7 +8,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -25,6 +25,7 @@ import rx.schedulers.Schedulers;
 public class SqsTest {
 
 	@Test
+	@Ignore
 	public void test() {
 		TestSubscriber<Integer> ts = TestSubscriber.create();
 		MySqsClient client = new MySqsClient();
