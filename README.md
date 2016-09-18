@@ -76,9 +76,8 @@ Sqs.queueName("my-queue")
 SqsMessageViaS3 message = 
    Sqs.queueName("my-queue")
       .sqsFactory(sqs)
-      .messages()
-      .s3Factory(s3)
       .bucketName("my-bucket")
+      .s3Factory(s3)
       .messages()
       .subscribeOn(Schedulers.io())
       .first().toBlocking().single();
