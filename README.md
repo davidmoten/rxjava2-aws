@@ -73,7 +73,7 @@ Sqs.queueName("my-queue")
 
 ```java
 // get just one message
-SqsMessageViaS3 message = 
+SqsMessage message = 
    Sqs.queueName("my-queue")
       .sqsFactory(sqs)
       .bucketName("my-bucket")
