@@ -75,11 +75,6 @@ public final class Sqs {
 			this.sqsBuilder = sqsBuilder;
 		}
 
-		public SqsBuilder bucketName(String bucketName) {
-			sqsBuilder.bucketName = Optional.of(bucketName);
-			return sqsBuilder;
-		}
-
 		public SqsBuilder s3Factory(Func0<AmazonS3Client> s3Factory) {
 			sqsBuilder.s3 = Optional.of(s3Factory);
 			return sqsBuilder;
@@ -183,11 +178,12 @@ public final class Sqs {
 	}
 
 	private static byte[] readAndClose(InputStream is) {
-		try (BufferedInputStream b = new BufferedInputStream(is)) {
+		Preconditions.checkNotNull(is);
+		try  {
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
 			byte[] bytes = new byte[8192];
 			int n;
-			while ((n = b.read(bytes)) != -1) {
+			while ((n = is.read(bytes)) != -1) {
 				bos.write(bytes, 0, n);
 			}
 			return bos.toByteArray();
@@ -196,46 +192,34 @@ public final class Sqs {
 		}
 	}
 
-	@SuppressWarnings("unused")
-	public static void main(String[] args) {
-		ClientConfiguration cc;
-		if (false)
-			cc = new ClientConfiguration().withProxyHost("proxy.amsa.gov.au").withProxyPort(8080);
-		else
-			cc = new ClientConfiguration();
-		AWSCredentialsProvider credentials = new SystemPropertiesCredentialsProvider();
-		Func0<AmazonSQSClient> sqs = () -> new AmazonSQSClient(credentials, cc)
-				.withRegion(Region.getRegion(Regions.AP_SOUTHEAST_2));
-		Func0<AmazonS3Client> s3 = () -> new AmazonS3Client(credentials, cc)
-				.withRegion(Region.getRegion(Regions.AP_SOUTHEAST_2));
-		String bucketName = "cts-gateway-requests";
-		String queueName = bucketName;
-		Sqs.queueName(queueName) //
-				.sqsFactory(sqs) //
-				.bucketName(bucketName) //
-				.s3Factory(s3) //
-				.messages() //
-				.subscribeOn(Schedulers.io()) //
-				.doOnNext(System.out::println) //
-				.doOnNext(SqsMessage::deleteMessage) //
-				.doOnError(e -> {
-					e.printStackTrace();
-					System.out.println(Thread.currentThread().getName());
-				}) //
-				.retryWhen(RetryWhen.delay(5, TimeUnit.SECONDS).build(), Schedulers.io()) //
-				.toBlocking().subscribe();
-
-		// String queueUrl = sqs.getQueueUrl(new
-		// GetQueueUrlRequest("cts-gateway-requests"))
-		// .getQueueUrl();
-		// Schedulers.computation().createWorker().schedule(() ->
-		// sqs.shutdown(), 3, TimeUnit.SECONDS);
-		// System.out.println("requesting");
-		// ReceiveMessageRequest request = new
-		// ReceiveMessageRequest(queueUrl).withWaitTimeSeconds(20)
-		// .withMaxNumberOfMessages(10);
-		// sqs.receiveMessage(request);
-		// System.out.println("finished");
-	}
+//	@SuppressWarnings("unused")
+//	public static void main(String[] args) {
+//		ClientConfiguration cc;
+//		if (false)
+//			cc = new ClientConfiguration().withProxyHost("proxy.amsa.gov.au").withProxyPort(8080);
+//		else
+//			cc = new ClientConfiguration();
+//		AWSCredentialsProvider credentials = new SystemPropertiesCredentialsProvider();
+//		Func0<AmazonSQSClient> sqs = () -> new AmazonSQSClient(credentials, cc)
+//				.withRegion(Region.getRegion(Regions.AP_SOUTHEAST_2));
+//		Func0<AmazonS3Client> s3 = () -> new AmazonS3Client(credentials, cc)
+//				.withRegion(Region.getRegion(Regions.AP_SOUTHEAST_2));
+//		String bucketName = "cts-gateway-requests";
+//		String queueName = bucketName;
+//		Sqs.queueName(queueName) //
+//				.sqsFactory(sqs) //
+//				.bucketName(bucketName) //
+//				.s3Factory(s3) //
+//				.messages() //
+//				.subscribeOn(Schedulers.io()) //
+//				.doOnNext(System.out::println) //
+//				.doOnNext(SqsMessage::deleteMessage) //
+//				.doOnError(e -> {
+//					e.printStackTrace();
+//					System.out.println(Thread.currentThread().getName());
+//				}) //
+//				.retryWhen(RetryWhen.delay(5, TimeUnit.SECONDS).build(), Schedulers.io()) //
+//				.toBlocking().subscribe();
+//	}
 
 }
