@@ -42,12 +42,12 @@ public class SqsTest {
 	}
 
 	@Test
-	public void testMocked() {
+	public void testFirstCallToReceiveMessagesReturnsOneMessage() {
 		AmazonSQSClient sqs = Mockito.mock(AmazonSQSClient.class);
 		String queueName = "queue";
 		Mockito.when(sqs.getQueueUrl(queueName)).thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
 		Mockito.when(sqs.receiveMessage(Mockito.<ReceiveMessageRequest>any()))
-				.thenReturn(new ReceiveMessageResult().withMessages(new Message().withBody("body1"))); 
+				.thenReturn(new ReceiveMessageResult().withMessages(new Message().withBody("body1")));
 		TestSubscriber<String> ts = TestSubscriber.create();
 		Sqs.queueName(queueName) //
 				.sqsFactory(() -> sqs) //
