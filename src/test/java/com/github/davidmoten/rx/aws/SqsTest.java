@@ -66,6 +66,30 @@ public class SqsTest {
 		Mockito.verifyNoMoreInteractions(sqs);
 	}
 
+	@Test
+	public void testFirstCallToReceiveMessagesReturnsOneMessageAndHonoursBackpressure() {
+		AmazonSQSClient sqs = Mockito.mock(AmazonSQSClient.class);
+		String queueName = "queue";
+		Mockito.when(sqs.getQueueUrl(queueName)).thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
+		Mockito.when(sqs.receiveMessage(Mockito.<ReceiveMessageRequest>any()))
+				.thenReturn(new ReceiveMessageResult().withMessages(new Message().withBody("body1")));
+		TestSubscriber<String> ts = TestSubscriber.create(0);
+		Sqs.queueName(queueName) //
+				.sqsFactory(() -> sqs) //
+				.messages() //
+				.map(m -> m.message()) //
+				.doOnError(Throwable::printStackTrace) //
+				.subscribe(ts);
+		ts.requestMore(1);
+		ts.assertValue("body1");
+		ts.assertNotCompleted();
+		ts.unsubscribe();
+		Mockito.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(queueName);
+		Mockito.verify(sqs, Mockito.times(1)).receiveMessage(Mockito.<ReceiveMessageRequest>any());
+		Mockito.verify(sqs, Mockito.times(1)).shutdown();
+		Mockito.verifyNoMoreInteractions(sqs);
+	}
+	
 	public static class MySqsClient extends AmazonSQSClient {
 
 		public MySqsClient() {
