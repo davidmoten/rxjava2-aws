@@ -1,8 +1,11 @@
 package com.github.davidmoten.rx.aws;
 
 import static com.github.davidmoten.rx.testing.TestSubscriber2.subscribe;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
 
@@ -202,6 +205,25 @@ public final class SqsTest {
 	@Test
 	public void isUtilityClass() {
 		Asserts.assertIsUtilityClass(Sqs.class);
+	}
+
+	@Test
+	public void testReadAndCloseWhenException() throws IOException {
+		IOException e = null;
+		try {
+			InputStream is = Mockito.mock(InputStream.class);
+			e = new IOException();
+			Mockito.when(is.read(Mockito.any(byte[].class))).thenThrow(e);
+			Sqs.readAndClose(is);
+		} catch (RuntimeException ex) {
+			assertEquals(e, ex.getCause());
+		}
+	}
+
+	@Test(expected = NullPointerException.class)
+	public void testBucketNameAndS3FactoryMustBothBeSpecified() {
+		Sqs.queueName("queue").sqsFactory(() -> new AmazonSQSClient()).bucketName(null)
+				.s3Factory(() -> new AmazonS3Client()).messages();
 	}
 
 }

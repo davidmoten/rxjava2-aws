@@ -82,8 +82,6 @@ public final class Sqs {
 		Preconditions.checkNotNull(s3ClientFactory);
 		Preconditions.checkNotNull(queueName);
 		Preconditions.checkNotNull(bucketName);
-		Preconditions.checkArgument(!s3ClientFactory.isPresent() || bucketName.isPresent(),
-				"bucketName must be specified if an s3ClientFactory is present");
 		return Observable.using(sqsClientFactory,
 				sqs -> createObservable(sqs, s3ClientFactory, sqsClientFactory, queueName, bucketName),
 				sqs -> sqs.shutdown());
@@ -167,7 +165,8 @@ public final class Sqs {
 
 	}
 
-	private static byte[] readAndClose(InputStream is) {
+	//Visible for testing
+	static byte[] readAndClose(InputStream is) {
 		Preconditions.checkNotNull(is);
 		try  {
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
