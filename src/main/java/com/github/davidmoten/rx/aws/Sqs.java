@@ -138,7 +138,7 @@ public final class Sqs {
 				if (bucketName.isPresent()) {
 					String s3Id = message.getBody();
 					if (!s3.get().doesObjectExist(bucketName.get(), s3Id)) {
-						sqs.deleteMessage(new DeleteMessageRequest(queueUrl, message.getReceiptHandle()));
+						sqs.deleteMessage(queueUrl, message.getReceiptHandle());
 					} else {
 						S3Object object = s3.get().getObject(bucketName.get(), s3Id);
 						byte[] content = readAndClose(object.getObjectContent());
