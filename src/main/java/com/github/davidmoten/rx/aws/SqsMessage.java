@@ -100,6 +100,12 @@ public final class SqsMessage {
 
 		Service(Optional<Func0<AmazonS3Client>> s3Factory, Func0<AmazonSQSClient> sqsFactory, Optional<AmazonS3Client> s3,
 				AmazonSQSClient sqs, String queueName, Optional<String> bucketName) {
+			Preconditions.checkNotNull(s3Factory);
+			Preconditions.checkNotNull(sqsFactory);
+			Preconditions.checkNotNull(s3);
+			Preconditions.checkNotNull(sqs);
+			Preconditions.checkNotNull(queueName);
+			Preconditions.checkNotNull(bucketName);
 			this.s3Factory = s3Factory;
 			this.sqsFactory = sqsFactory;
 			this.s3 = s3;
