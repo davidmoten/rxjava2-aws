@@ -22,8 +22,6 @@ import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import com.amazonaws.util.StringInputStream;
 import com.github.davidmoten.junit.Asserts;
 
-import rx.observers.TestSubscriber;
-
 public class SqsTest {
 
 	@Test(timeout = 5000)
@@ -43,10 +41,11 @@ public class SqsTest {
 				.awaitTerminalEvent() //
 				.assertCompleted() //
 				.assertValue("body1");
-		Mockito.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(queueName);
-		Mockito.verify(sqs, Mockito.times(1)).receiveMessage(Mockito.<ReceiveMessageRequest>any());
-		Mockito.verify(sqs, Mockito.times(1)).shutdown();
-		Mockito.verifyNoMoreInteractions(sqs);
+		InOrder inorder = Mockito.inOrder(sqs);
+		inorder.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(queueName);
+		inorder.verify(sqs, Mockito.times(1)).receiveMessage(Mockito.<ReceiveMessageRequest>any());
+		inorder.verify(sqs, Mockito.times(1)).shutdown();
+		inorder.verifyNoMoreInteractions();
 	}
 
 	@Test(timeout = 5000)
@@ -66,10 +65,11 @@ public class SqsTest {
 				.assertValue("body1")//
 				.assertNotCompleted() //
 				.unsubscribe();
-		Mockito.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(queueName);
-		Mockito.verify(sqs, Mockito.times(1)).receiveMessage(Mockito.<ReceiveMessageRequest>any());
-		Mockito.verify(sqs, Mockito.times(1)).shutdown();
-		Mockito.verifyNoMoreInteractions(sqs);
+		InOrder inorder = Mockito.inOrder(sqs);
+		inorder.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(queueName);
+		inorder.verify(sqs, Mockito.times(1)).receiveMessage(Mockito.<ReceiveMessageRequest>any());
+		inorder.verify(sqs, Mockito.times(1)).shutdown();
+		inorder.verifyNoMoreInteractions();
 	}
 
 	@Test(timeout = 5000)
@@ -80,21 +80,21 @@ public class SqsTest {
 		Mockito.when(sqs.receiveMessage(Mockito.<ReceiveMessageRequest>any())).thenReturn(new ReceiveMessageResult())
 				.thenReturn(new ReceiveMessageResult().withMessages(new Message().withBody("body1"),
 						new Message().withBody("body2")));
-		TestSubscriber<String> ts = TestSubscriber.create();
 		Sqs.queueName(queueName) //
 				.sqsFactory(() -> sqs) //
 				.messages() //
 				.map(m -> m.message()) //
 				.doOnError(Throwable::printStackTrace) //
 				.take(2) //
-				.subscribe(ts);
-		ts.awaitTerminalEvent();
-		ts.assertCompleted();
-		ts.assertValues("body1", "body2");
-		Mockito.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(queueName);
-		Mockito.verify(sqs, Mockito.times(2)).receiveMessage(Mockito.<ReceiveMessageRequest>any());
-		Mockito.verify(sqs, Mockito.times(1)).shutdown();
-		Mockito.verifyNoMoreInteractions(sqs);
+				.to(subscribe()) //
+				.awaitTerminalEvent() //
+				.assertCompleted() //
+				.assertValues("body1", "body2");
+		InOrder inorder = Mockito.inOrder(sqs);
+		inorder.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(queueName);
+		inorder.verify(sqs, Mockito.times(2)).receiveMessage(Mockito.<ReceiveMessageRequest>any());
+		inorder.verify(sqs, Mockito.times(1)).shutdown();
+		inorder.verifyNoMoreInteractions();
 	}
 
 	@Test(timeout = 5000)
@@ -140,7 +140,7 @@ public class SqsTest {
 		inorder.verify(sqs, Mockito.times(1)).deleteMessage(queueName, receiptHandle);
 		inorder.verify(sqs, Mockito.times(1)).shutdown();
 		inorder.verify(s3, Mockito.times(1)).shutdown();
-		Mockito.verifyNoMoreInteractions(sqs, s3, s3Object);
+		inorder.verifyNoMoreInteractions();
 	}
 
 	@Test
