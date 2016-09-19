@@ -20,12 +20,13 @@ import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import com.amazonaws.util.StringInputStream;
+import com.github.davidmoten.junit.Asserts;
 
 import rx.observers.TestSubscriber;
 
 public class SqsTest {
 
-	@Test(timeout= 5000)
+	@Test(timeout = 5000)
 	public void testFirstCallToReceiveMessagesReturnsOneMessage() {
 		AmazonSQSClient sqs = Mockito.mock(AmazonSQSClient.class);
 		String queueName = "queue";
@@ -48,7 +49,7 @@ public class SqsTest {
 		Mockito.verifyNoMoreInteractions(sqs);
 	}
 
-	@Test(timeout= 5000)
+	@Test(timeout = 5000)
 	public void testFirstCallToReceiveMessagesReturnsOneMessageAndHonoursBackpressure() {
 		AmazonSQSClient sqs = Mockito.mock(AmazonSQSClient.class);
 		String queueName = "queue";
@@ -71,7 +72,7 @@ public class SqsTest {
 		Mockito.verifyNoMoreInteractions(sqs);
 	}
 
-	@Test(timeout= 5000)
+	@Test(timeout = 5000)
 	public void testFirstCallToReceiveMessagesReturnsNoMessagesThenSecondCallReturnsTwoMessages() {
 		AmazonSQSClient sqs = Mockito.mock(AmazonSQSClient.class);
 		String queueName = "queue";
@@ -140,6 +141,11 @@ public class SqsTest {
 		inorder.verify(sqs, Mockito.times(1)).shutdown();
 		inorder.verify(s3, Mockito.times(1)).shutdown();
 		Mockito.verifyNoMoreInteractions(sqs, s3, s3Object);
+	}
+
+	@Test
+	public void isUtilityClass() {
+		Asserts.assertIsUtilityClass(Sqs.class);
 	}
 
 }
