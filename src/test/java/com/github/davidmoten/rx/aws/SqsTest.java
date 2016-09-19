@@ -1,6 +1,7 @@
 package com.github.davidmoten.rx.aws;
 
 import static com.github.davidmoten.rx.testing.TestSubscriber2.subscribe;
+import static com.github.davidmoten.rx.testing.TestSubscriber2.subscriber;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
@@ -40,7 +41,7 @@ public final class SqsTest {
 				.map(m -> m.message()) //
 				.doOnError(Throwable::printStackTrace) //
 				.take(1) //
-				.to(subscribe()) //
+				.to(subscriber()) //
 				.awaitTerminalEvent() //
 				.assertCompleted() //
 				.assertValue("body1");
@@ -89,7 +90,7 @@ public final class SqsTest {
 				.map(m -> m.message()) //
 				.doOnError(Throwable::printStackTrace) //
 				.take(2) //
-				.to(subscribe()) //
+				.to(subscriber()) //
 				.awaitTerminalEvent() //
 				.assertCompleted() //
 				.assertValues("body1", "body2");
@@ -128,7 +129,7 @@ public final class SqsTest {
 				.map(m -> m.message()) //
 				.doOnError(Throwable::printStackTrace) //
 				.take(1) //
-				.to(subscribe()) //
+				.to(subscriber()) //
 				.awaitTerminalEvent() //
 				.assertCompleted() //
 				.assertValues("body1");
@@ -181,7 +182,7 @@ public final class SqsTest {
 				.map(m -> m.message()) //
 				.doOnError(Throwable::printStackTrace) //
 				.take(1) //
-				.to(subscribe()) //
+				.to(subscriber()) //
 				.awaitTerminalEvent() //
 				.assertCompleted() //
 				.assertValues("body2");
@@ -225,5 +226,36 @@ public final class SqsTest {
 		Sqs.queueName("queue").sqsFactory(() -> new AmazonSQSClient()).bucketName(null)
 				.s3Factory(() -> new AmazonS3Client()).messages();
 	}
+	
+//	@SuppressWarnings("unused")
+//	public static void main(String[] args) {
+//		ClientConfiguration cc;
+//		if (false)
+//			cc = new ClientConfiguration().withProxyHost("proxy.amsa.gov.au").withProxyPort(8080);
+//		else
+//			cc = new ClientConfiguration();
+//		AWSCredentialsProvider credentials = new SystemPropertiesCredentialsProvider();
+//		Func0<AmazonSQSClient> sqs = () -> new AmazonSQSClient(credentials, cc)
+//				.withRegion(Region.getRegion(Regions.AP_SOUTHEAST_2));
+//		Func0<AmazonS3Client> s3 = () -> new AmazonS3Client(credentials, cc)
+//				.withRegion(Region.getRegion(Regions.AP_SOUTHEAST_2));
+//		String bucketName = "cts-gateway-requests";
+//		String queueName = bucketName;
+//		Sqs.queueName(queueName) //
+//				.sqsFactory(sqs) //
+//				.bucketName(bucketName) //
+//				.s3Factory(s3) //
+//				.messages() //
+//				.subscribeOn(Schedulers.io()) //
+//				.doOnNext(System.out::println) //
+//				.doOnNext(SqsMessage::deleteMessage) //
+//				.doOnError(e -> {
+//					e.printStackTrace();
+//					System.out.println(Thread.currentThread().getName());
+//				}) //
+//				.retryWhen(RetryWhen.delay(5, TimeUnit.SECONDS).build(), Schedulers.io()) //
+//				.toBlocking().subscribe();
+//	}
+
 
 }
