@@ -92,7 +92,7 @@
 		<dependency>
 			<groupId>com.github.davidmoten</groupId>
 			<artifactId>rxjava-extras</artifactId>
-			<version>0.7.9.16</version>
+			<version>0.7.9.17-SNAPSHOT</version>
 		</dependency>
 
 		<dependency>

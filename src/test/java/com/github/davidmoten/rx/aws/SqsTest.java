@@ -235,6 +235,11 @@ public final class SqsTest {
                 .s3Factory(() -> new AmazonS3Client()).messages();
     }
 
+    @Test
+    public void testPolling() {
+    	
+    }
+    
     // @SuppressWarnings("unused")
     // public static void main(String[] args) {
     // ClientConfiguration cc;
