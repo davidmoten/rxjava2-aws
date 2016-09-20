@@ -38,6 +38,29 @@ Sqs.queueName("my-queue")
    .subscribe(subscriber);
 ```
 
+```java
+Func0<AmazonSQSClient> sqs = () -> ...;
+
+Sqs.queueName("my-queue")
+    // specify factory for Amazon SQS Client
+   .sqsFactory(sqs)
+   // get messages as observable
+   .messages()
+   .// process the message
+   .doOnNext(m -> System.out.println(m.message()))
+   // delete the message (if processing succeeded)
+   .doOnNext(m -> m.deleteMessage())
+   // log any errors
+   .doOnError(e -> log.warn(e.getMessage(), e))
+   // run in the background
+   .subscribeOn(Schedulers.io())
+   // any errors then delay and resubscribe (on an io thread)
+   .retryWhen(RetryWhen.delay(30, TimeUnit.SECONDS).build(), 
+              Schedulers.io())
+   // go!
+   .subscribe(subscriber);
+```
+
 ##Reading messages from an AWS SQS queue via S3 storage
 SQS queues are restricted to String messages (legal xml characters only) with a maximum size of 256K (binary messages would be Base64 encoded). If you want to pass larger messages then one pattern is to store the message content in a resource in an S3 bucket and put the resource name on to the queue. To receive the message you read the identifier from the queue and retrieve the resource bytes from the S3 bucket. Once you've dealt with the whole message you delete the S3 resource then remove the message from the queue.  
 

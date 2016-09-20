@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.Optional;
 import java.util.Queue;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -21,6 +22,7 @@ import com.github.davidmoten.util.Preconditions;
 
 import rx.Observable;
 import rx.Observer;
+import rx.Scheduler;
 import rx.functions.Func0;
 
 public final class Sqs {
@@ -54,6 +56,11 @@ public final class Sqs {
 		public SqsBuilder waitTimesSeconds(Observable<? extends Number> waitTimesSeconds) {
 			this.waitTimesSeconds = Optional.of(waitTimesSeconds.map(x -> (int) Math.round(x.doubleValue())));
 			return this;
+		}
+
+		public SqsBuilder interval(int interval, TimeUnit unit, Scheduler scheduler) {
+			return waitTimesSeconds(Observable.just(unit.toSeconds(interval))
+					.concatWith(Observable.interval(interval, unit, scheduler)));
 		}
 
 		public Observable<SqsMessage> messages() {
@@ -132,26 +139,26 @@ public final class Sqs {
 							.stream() //
 							.map(m -> Sqs.getNextMessage(m, queueUrl, bucketName, s3, sqs, service)) //
 							.collect(Collectors.toList())) //
-					.concatWith(Observable.defer(() -> Observable
-							.just(sqs.receiveMessage(request(queueName, 0)) //
+					.concatWith(Observable
+							.defer(() -> Observable.just(sqs.receiveMessage(request(queueName, 0)) //
 									.getMessages() //
 									.stream() //
 									.map(m -> Sqs.getNextMessage(m, queueUrl, bucketName, s3, sqs, service)) //
 									.collect(Collectors.toList()))) //
 							.repeat())
-					.doOnNext(System.out::println) //
 					.takeWhile(list -> !list.isEmpty()) //
 					.flatMapIterable(Functions.identity()) //
 					.filter(opt -> opt.isPresent()).map(opt -> opt.get());
 		});//
 	}
-	
+
 	private static Observable<SqsMessage> createObservableContinousLongPolling(AmazonSQSClient sqs, String queueName,
 			Optional<String> bucketName, Optional<AmazonS3Client> s3, final Service service) {
 		return Observable.create(new ContinuousLongPollingSyncOnSubscribe(sqs, queueName, s3, bucketName, service));
 	}
 
-	private static final class ContinuousLongPollingSyncOnSubscribe extends rx.observables.SyncOnSubscribe<State, SqsMessage> {
+	private static final class ContinuousLongPollingSyncOnSubscribe
+			extends rx.observables.SyncOnSubscribe<State, SqsMessage> {
 
 		private final AmazonSQSClient sqs;
 		private final String queueName;

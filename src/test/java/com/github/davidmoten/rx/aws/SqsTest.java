@@ -239,6 +239,7 @@ public final class SqsTest {
 		String queueName = "queue";
 		Mockito.when(sqs.getQueueUrl(queueName)).thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
 		Mockito.when(sqs.receiveMessage(Mockito.<ReceiveMessageRequest>any())) //
+				.thenReturn(new ReceiveMessageResult()) //
 				.thenReturn(new ReceiveMessageResult().withMessages(new Message().withBody("body1"))) //
 				.thenReturn(new ReceiveMessageResult().withMessages(new Message().withBody("body2"))) //
 				.thenReturn(new ReceiveMessageResult()) //
@@ -247,7 +248,8 @@ public final class SqsTest {
 				.thenReturn(new ReceiveMessageResult());
 		Sqs.queueName(queueName) //
 				.sqsFactory(() -> sqs) //
-				.waitTimesSeconds(Observable.interval(1, TimeUnit.MINUTES, sched)).messages() //
+				.interval(1, TimeUnit.MINUTES, sched) //
+				.messages() //
 				.map(m -> m.message()) //
 				.doOnError(Throwable::printStackTrace) //
 				.to(test()) //
@@ -265,7 +267,7 @@ public final class SqsTest {
 				.unsubscribe();
 		InOrder inorder = Mockito.inOrder(sqs);
 		inorder.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(queueName);
-		//TODO why times(1), should be times(6)?
+		// TODO why times(1), should be times(6)?
 		inorder.verify(sqs, Mockito.times(1)).receiveMessage(Mockito.<ReceiveMessageRequest>any());
 		inorder.verify(sqs, Mockito.times(1)).shutdown();
 		inorder.verifyNoMoreInteractions();
