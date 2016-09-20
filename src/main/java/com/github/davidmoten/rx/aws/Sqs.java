@@ -132,13 +132,14 @@ public final class Sqs {
 							.stream() //
 							.map(m -> Sqs.getNextMessage(m, queueUrl, bucketName, s3, sqs, service)) //
 							.collect(Collectors.toList())) //
-					.concatWith(Observable
+					.concatWith(Observable.defer(() -> Observable
 							.just(sqs.receiveMessage(request(queueName, 0)) //
 									.getMessages() //
 									.stream() //
 									.map(m -> Sqs.getNextMessage(m, queueUrl, bucketName, s3, sqs, service)) //
-									.collect(Collectors.toList())) //
+									.collect(Collectors.toList()))) //
 							.repeat())
+					.doOnNext(System.out::println) //
 					.takeWhile(list -> !list.isEmpty()) //
 					.flatMapIterable(Functions.identity()) //
 					.filter(opt -> opt.isPresent()).map(opt -> opt.get());
