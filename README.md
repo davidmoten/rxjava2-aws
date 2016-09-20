@@ -9,7 +9,8 @@ Status: *pre-alpha*
 
 * Represent an SQS queue as an `Observable<SqsMessage>`
 * Full backpressure support
-* Low latency delivery (using long-polling which blocks a thread)
+* Supports low latency delivery (using long-polling which blocks a thread)
+* Supports higher latency delivery via scheduled polling (reduced thread blocking)
 
 ##Reading messages from an AWS SQS queue
 The method below blocks a thread (using long polling). 
@@ -116,7 +117,3 @@ SqsMessage message =
 // this will still work fine        
 message.deleteMessage();
 ```  
-
-##TODO
-* Support higher latency periodic polling which does not block a thread (but may incur more network io). 
-
