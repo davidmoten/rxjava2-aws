@@ -52,6 +52,8 @@ Sqs.queueName("my-queue")
    ...
 ```
 
+or for lower level control of scheduled polling use `.waitTimes`:
+
 ```java
 Sqs.queueName("my-queue")
     // specify factory for Amazon SQS Client
