@@ -53,14 +53,17 @@ public final class Sqs {
 			return this;
 		}
 
-		public SqsBuilder waitTimesSeconds(Observable<? extends Number> waitTimesSeconds) {
-			this.waitTimesSeconds = Optional.of(waitTimesSeconds.map(x -> (int) Math.round(x.doubleValue())));
+		public SqsBuilder waitTimes(Observable<? extends Number> waitTimesSeconds, TimeUnit unit) {
+			this.waitTimesSeconds = Optional
+					.of(waitTimesSeconds.map(x -> (int) unit.toSeconds(Math.round(x.doubleValue()))));
 			return this;
 		}
 
 		public SqsBuilder interval(int interval, TimeUnit unit, Scheduler scheduler) {
-			return waitTimesSeconds(Observable.just(unit.toSeconds(interval))
-					.concatWith(Observable.interval(interval, unit, scheduler)));
+			return waitTimes( //
+					Observable.just(0) //
+							.concatWith(Observable.interval(interval, unit, scheduler).map(x -> 0)),
+					TimeUnit.SECONDS);
 		}
 
 		public Observable<SqsMessage> messages() {

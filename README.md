@@ -38,27 +38,29 @@ Sqs.queueName("my-queue")
    .subscribe(subscriber);
 ```
 
-```java
-Func0<AmazonSQSClient> sqs = () -> ...;
+Use `.interval` for scheduled polling:
 
+
+```java
 Sqs.queueName("my-queue")
     // specify factory for Amazon SQS Client
    .sqsFactory(sqs)
+   // every 60 seconds check for messages
+   .interval(60, TimeUnit.SECONDS)
    // get messages as observable
    .messages()
-   .// process the message
-   .doOnNext(m -> System.out.println(m.message()))
-   // delete the message (if processing succeeded)
-   .doOnNext(m -> m.deleteMessage())
-   // log any errors
-   .doOnError(e -> log.warn(e.getMessage(), e))
-   // run in the background
-   .subscribeOn(Schedulers.io())
-   // any errors then delay and resubscribe (on an io thread)
-   .retryWhen(RetryWhen.delay(30, TimeUnit.SECONDS).build(), 
-              Schedulers.io())
-   // go!
-   .subscribe(subscriber);
+   ...
+```
+
+```java
+Sqs.queueName("my-queue")
+    // specify factory for Amazon SQS Client
+   .sqsFactory(sqs)
+   // every 60 seconds check for messages and wait for up to 5 seconds
+   .waitTimes(Observable.interval(60, TimeUnit.SECONDS).map(x -> 5), TimeUnit.SECONDS)
+   // get messages as observable
+   .messages()
+   ...
 ```
 
 ##Reading messages from an AWS SQS queue via S3 storage
