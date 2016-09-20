@@ -51,8 +51,8 @@ public final class Sqs {
 			return this;
 		}
 
-		public SqsBuilder waitTimesSeconds(Observable<Integer> waitTimesSeconds) {
-			this.waitTimesSeconds = Optional.of(waitTimesSeconds);
+		public SqsBuilder waitTimesSeconds(Observable<? extends Number> waitTimesSeconds) {
+			this.waitTimesSeconds = Optional.of(waitTimesSeconds.map(x -> (int) Math.round(x.doubleValue())));
 			return this;
 		}
 

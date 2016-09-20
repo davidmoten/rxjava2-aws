@@ -9,7 +9,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
@@ -25,6 +27,9 @@ import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import com.amazonaws.util.StringInputStream;
 import com.github.davidmoten.junit.Asserts;
+
+import rx.Observable;
+import rx.schedulers.TestScheduler;
 
 public final class SqsTest {
 
@@ -235,9 +240,33 @@ public final class SqsTest {
                 .s3Factory(() -> new AmazonS3Client()).messages();
     }
 
-    @Test
+    @Test(timeout = 5000)
+    @Ignore
     public void testPolling() {
-    	
+    	TestScheduler sched = new TestScheduler();
+        AmazonSQSClient sqs = Mockito.mock(AmazonSQSClient.class);
+        String queueName = "queue";
+        Mockito.when(sqs.getQueueUrl(queueName))
+                .thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
+        Mockito.when(sqs.receiveMessage(Mockito.<ReceiveMessageRequest> any())).thenReturn(
+                new ReceiveMessageResult().withMessages(new Message().withBody("body1")));
+        Sqs.queueName(queueName) //
+                .sqsFactory(() -> sqs) //
+                .waitTimesSeconds(Observable.interval(1, TimeUnit.MINUTES, sched))
+                .messages() //
+                .map(m -> m.message()) //
+                .doOnError(Throwable::printStackTrace) //
+                .to(test()) //
+                .assertNoValues() //
+                .assertNoTerminalEvent() //
+                .perform(() -> sched.advanceTimeBy(1, TimeUnit.MINUTES)) //
+                .assertValue("body1") //
+        		.assertNoTerminalEvent() ;
+        InOrder inorder = Mockito.inOrder(sqs);
+        inorder.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(queueName);
+        inorder.verify(sqs, Mockito.times(1)).receiveMessage(Mockito.<ReceiveMessageRequest> any());
+        inorder.verify(sqs, Mockito.times(1)).shutdown();
+        inorder.verifyNoMoreInteractions();
     }
     
     // @SuppressWarnings("unused")
