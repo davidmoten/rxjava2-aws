@@ -108,14 +108,14 @@ public final class Sqs {
 			Optional<String> bucketName, Optional<AmazonS3Client> s3, Optional<Observable<Integer>> waitTimesSeconds) {
 		final Service service = new Service(s3ClientFactory, sqsClientFactory, s3, sqs, queueName, bucketName);
 		if (waitTimesSeconds.isPresent()) {
-			return createObservable2(sqs, s3ClientFactory, sqsClientFactory, queueName, bucketName, s3,
+			return createObservablePolling(sqs, s3ClientFactory, sqsClientFactory, queueName, bucketName, s3,
 					waitTimesSeconds.get());
 		} else {
-			return Observable.create(new MySyncOnSubscribe(sqs, queueName, s3, bucketName, service));
+			return createObservableContinousLongPolling(sqs, queueName, bucketName, s3, service);
 		}
 	}
 
-	private static Observable<SqsMessage> createObservable2(AmazonSQSClient sqs,
+	private static Observable<SqsMessage> createObservablePolling(AmazonSQSClient sqs,
 			Optional<Func0<AmazonS3Client>> s3ClientFactory, Func0<AmazonSQSClient> sqsClientFactory, String queueName,
 			Optional<String> bucketName, Optional<AmazonS3Client> s3, Observable<Integer> waitTimesSeconds) {
 		final Service service = new Service(s3ClientFactory, sqsClientFactory, s3, sqs, queueName, bucketName);
@@ -144,8 +144,13 @@ public final class Sqs {
 					.filter(opt -> opt.isPresent()).map(opt -> opt.get());
 		});//
 	}
+	
+	private static Observable<SqsMessage> createObservableContinousLongPolling(AmazonSQSClient sqs, String queueName,
+			Optional<String> bucketName, Optional<AmazonS3Client> s3, final Service service) {
+		return Observable.create(new ContinuousLongPollingSyncOnSubscribe(sqs, queueName, s3, bucketName, service));
+	}
 
-	private static final class MySyncOnSubscribe extends rx.observables.SyncOnSubscribe<State, SqsMessage> {
+	private static final class ContinuousLongPollingSyncOnSubscribe extends rx.observables.SyncOnSubscribe<State, SqsMessage> {
 
 		private final AmazonSQSClient sqs;
 		private final String queueName;
@@ -156,7 +161,7 @@ public final class Sqs {
 		private ReceiveMessageRequest request;
 		private String queueUrl;
 
-		public MySyncOnSubscribe(AmazonSQSClient sqs, String queueName, Optional<AmazonS3Client> s3,
+		public ContinuousLongPollingSyncOnSubscribe(AmazonSQSClient sqs, String queueName, Optional<AmazonS3Client> s3,
 				Optional<String> bucketName, Service service) {
 			this.sqs = sqs;
 			this.queueName = queueName;
