@@ -59,7 +59,9 @@ Sqs.queueName("my-queue")
     // specify factory for Amazon SQS Client
    .sqsFactory(sqs)
    // every 60 seconds check for messages and wait for up to 5 seconds
-   .waitTimes(Observable.interval(60, TimeUnit.SECONDS).map(x -> 5), TimeUnit.SECONDS)
+   .waitTimes(
+       Observable.interval(60, TimeUnit.SECONDS).map(x -> 5),
+       TimeUnit.SECONDS)
    // get messages as observable
    .messages()
    ...
