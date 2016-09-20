@@ -7,7 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.Optional;
 import java.util.Queue;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.S3Object;
@@ -15,6 +15,7 @@ import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
+import com.github.davidmoten.rx.Functions;
 import com.github.davidmoten.rx.aws.SqsMessage.Service;
 import com.github.davidmoten.util.Preconditions;
 
@@ -133,40 +134,41 @@ public final class Sqs {
 		@Override
 		protected State next(State state, Observer<? super SqsMessage> observer) {
 			final Queue<Message> q = state.queue;
-			final AtomicReference<SqsMessage> next = new AtomicReference<>();
-			while (next.get() == null) {
+			Optional<SqsMessage> next = Optional.empty();
+			while (!next.isPresent()) {
 				while (q.isEmpty()) {
 					ReceiveMessageResult result = sqs.receiveMessage(request);
 					q.addAll(result.getMessages());
 				}
-				getNextMessage(sqs, bucketName, s3, service, observer, q, next);
+				Message message = q.poll();
+				next = getNextMessage(message, queueUrl, bucketName, s3, sqs, service);
 			}
 			observer.onNext(next.get());
 			return state;
 		}
 
-		private void getNextMessage(AmazonSQSClient sqs, Optional<String> bucketName, Optional<AmazonS3Client> s3,
-				final Service service, Observer<? super SqsMessage> observer, Queue<Message> queue,
-				AtomicReference<SqsMessage> next) {
-			Message message = queue.poll();
-			if (bucketName.isPresent()) {
-				String s3Id = message.getBody();
-				if (!s3.get().doesObjectExist(bucketName.get(), s3Id)) {
-					sqs.deleteMessage(queueUrl, message.getReceiptHandle());
-				} else {
-					S3Object object = s3.get().getObject(bucketName.get(), s3Id);
-					byte[] content = readAndClose(object.getObjectContent());
-					long timestamp = object.getObjectMetadata().getLastModified().getTime();
-					SqsMessage mb = new SqsMessage(message.getReceiptHandle(), content, timestamp, Optional.of(s3Id),
-							service);
-					next.set(mb);
-				}
+	}
+
+	static Optional<SqsMessage> getNextMessage(Message message, String queueUrl, Optional<String> bucketName,
+			Optional<AmazonS3Client> s3, AmazonSQSClient sqs, Service service) {
+		if (bucketName.isPresent()) {
+			String s3Id = message.getBody();
+			if (!s3.get().doesObjectExist(bucketName.get(), s3Id)) {
+				sqs.deleteMessage(queueUrl, message.getReceiptHandle());
+				return Optional.empty();
 			} else {
-				SqsMessage mb = new SqsMessage(message.getReceiptHandle(),
-						message.getBody().getBytes(StandardCharsets.UTF_8), System.currentTimeMillis(),
-						Optional.empty(), service);
-				next.set(mb);
+				S3Object object = s3.get().getObject(bucketName.get(), s3Id);
+				byte[] content = readAndClose(object.getObjectContent());
+				long timestamp = object.getObjectMetadata().getLastModified().getTime();
+				SqsMessage mb = new SqsMessage(message.getReceiptHandle(), content, timestamp, Optional.of(s3Id),
+						service);
+				return Optional.of(mb);
 			}
+		} else {
+			SqsMessage mb = new SqsMessage(message.getReceiptHandle(),
+					message.getBody().getBytes(StandardCharsets.UTF_8), System.currentTimeMillis(), Optional.empty(),
+					service);
+			return Optional.of(mb);
 		}
 	}
 
@@ -178,6 +180,41 @@ public final class Sqs {
 			this.queue = queue;
 		}
 
+	}
+
+	private static Observable<SqsMessage> createObservable2(AmazonSQSClient sqs,
+			Optional<Func0<AmazonS3Client>> s3ClientFactory, Func0<AmazonSQSClient> sqsClientFactory, String queueName,
+			Optional<String> bucketName, Optional<AmazonS3Client> s3, Observable<Integer> source) {
+		final Service service = new Service(s3ClientFactory, sqsClientFactory, s3, sqs, queueName, bucketName);
+		return source.flatMap(n -> get(sqs, queueName, bucketName, s3, service, n), 1);
+	}
+
+	private static Observable<SqsMessage> get(AmazonSQSClient sqs, String queueName,
+			Optional<String> bucketName, Optional<AmazonS3Client> s3, Service service, int waitTimeSeconds) {
+		return Observable.defer(() -> {
+			String queueUrl = sqs.getQueueUrl(queueName).getQueueUrl();
+			return Observable
+					.just(sqs.receiveMessage(request(queueName, waitTimeSeconds)) //
+							.getMessages() //
+							.stream() //
+							.map(m -> Sqs.getNextMessage(m, queueUrl, bucketName, s3, sqs, service)) //
+							.collect(Collectors.toList())) //
+					.concatWith(Observable
+							.just(sqs.receiveMessage(request(queueName, 0)) //
+									.getMessages() //
+									.stream() //
+									.map(m -> Sqs.getNextMessage(m, queueUrl, bucketName, s3, sqs, service)) //
+									.collect(Collectors.toList())) //
+							.repeat())
+					.takeWhile(list -> !list.isEmpty()) //
+					.flatMapIterable(Functions.identity()) //
+					.filter(opt -> opt.isPresent())
+					.map(opt -> opt.get());
+		});//
+	}
+
+	private static ReceiveMessageRequest request(String queueUrl, int waitTimeSeconds) {
+		return new ReceiveMessageRequest(queueUrl).withMaxNumberOfMessages(20).withWaitTimeSeconds(waitTimeSeconds);
 	}
 
 	// Visible for testing
