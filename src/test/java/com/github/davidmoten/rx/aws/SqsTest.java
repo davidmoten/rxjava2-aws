@@ -3,6 +3,7 @@ package com.github.davidmoten.rx.aws;
 import static com.github.davidmoten.rx.testing.TestingHelper.test;
 import static com.github.davidmoten.rx.testing.TestingHelper.testWithRequest;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
@@ -11,7 +12,6 @@ import java.io.UnsupportedEncodingException;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
@@ -28,7 +28,7 @@ import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import com.amazonaws.util.StringInputStream;
 import com.github.davidmoten.junit.Asserts;
 
-import rx.Observable;
+import rx.exceptions.CompositeException;
 import rx.schedulers.TestScheduler;
 
 public final class SqsTest {
@@ -273,6 +273,25 @@ public final class SqsTest {
 		inorder.verifyNoMoreInteractions();
 	}
 
+	@Test
+	public void testSendMessage() {
+		AmazonSQSClient sqs = Mockito.mock(AmazonSQSClient.class);
+		AmazonS3Client s3 = Mockito.mock(AmazonS3Client.class);
+		Sqs.sendToQueueUsingS3(sqs, "queueUrl", s3, "bucket", new byte[] { 1, 2 });
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test
+	public void ensureIfSendToSqsFailsThatS3ObjectIsDeleted() {
+		AmazonSQSClient sqs = Mockito.mock(AmazonSQSClient.class);
+		AmazonS3Client s3 = Mockito.mock(AmazonS3Client.class);
+		Mockito.when(sqs.sendMessage(Mockito.anyString(), Mockito.anyString())).thenThrow(RuntimeException.class);
+		try {
+			Sqs.sendToQueueUsingS3(sqs, "queueUrl", s3, "bucket", new byte[] { 1, 2 });
+		} catch (RuntimeException e) {
+			assertTrue(e instanceof CompositeException);
+		}
+	}
 	// @SuppressWarnings("unused")
 	// public static void main(String[] args) {
 	// ClientConfiguration cc;

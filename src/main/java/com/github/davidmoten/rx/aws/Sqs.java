@@ -1,5 +1,6 @@
 package com.github.davidmoten.rx.aws;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -7,10 +8,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.Optional;
 import java.util.Queue;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.Message;
@@ -23,6 +26,7 @@ import com.github.davidmoten.util.Preconditions;
 import rx.Observable;
 import rx.Observer;
 import rx.Scheduler;
+import rx.exceptions.CompositeException;
 import rx.functions.Func0;
 import rx.schedulers.Schedulers;
 
@@ -30,6 +34,29 @@ public final class Sqs {
 
 	private Sqs() {
 		// prevent instantiation
+	}
+
+	public static void sendToQueueUsingS3(AmazonSQSClient sqs, String queueUrl, AmazonS3Client s3, String bucketName,
+			byte[] message) {
+		Preconditions.checkNotNull(sqs);
+		Preconditions.checkNotNull(s3);
+		Preconditions.checkNotNull(queueUrl);
+		Preconditions.checkNotNull(bucketName);
+		Preconditions.checkNotNull(message);
+		String s3Id = UUID.randomUUID().toString().replace("-", "");
+		ObjectMetadata metadata = new ObjectMetadata();
+		metadata.setContentLength(message.length);
+		s3.putObject(bucketName, s3Id, new ByteArrayInputStream(message), metadata);
+		try {
+			sqs.sendMessage(queueUrl, s3Id);
+		} catch (RuntimeException e) {
+			try {
+				s3.deleteObject(bucketName, s3Id);
+				throw e;
+			} catch (RuntimeException e2) {
+				throw new CompositeException(e, e2);
+			}
+		}
 	}
 
 	public static final class SqsBuilder {
@@ -66,12 +93,9 @@ public final class Sqs {
 							.concatWith(Observable.interval(interval, unit, scheduler).map(x -> 0)),
 					TimeUnit.SECONDS);
 		}
-		
+
 		public SqsBuilder interval(int interval, TimeUnit unit) {
-			return waitTimes( //
-					Observable.just(0) //
-							.concatWith(Observable.interval(interval, unit, Schedulers.io()).map(x -> 0)),
-					TimeUnit.SECONDS);
+			return interval(interval, unit, Schedulers.io());
 		}
 
 		public Observable<SqsMessage> messages() {
