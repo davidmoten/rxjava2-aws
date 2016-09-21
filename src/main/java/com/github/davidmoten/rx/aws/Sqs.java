@@ -37,7 +37,7 @@ public final class Sqs {
 	}
 
 	public static void sendToQueueUsingS3(AmazonSQSClient sqs, String queueUrl, AmazonS3Client s3, String bucketName,
-			byte[] message) {
+			byte[] message, Func0<String> s3NameFactory) {
 		Preconditions.checkNotNull(sqs);
 		Preconditions.checkNotNull(s3);
 		Preconditions.checkNotNull(queueUrl);
@@ -57,6 +57,11 @@ public final class Sqs {
 				throw new CompositeException(e, e2);
 			}
 		}
+	}
+
+	public static void sendToQueueUsingS3(AmazonSQSClient sqs, String queueUrl, AmazonS3Client s3, String bucketName,
+			byte[] message) {
+		sendToQueueUsingS3(sqs, queueUrl, s3, bucketName, message, () -> UUID.randomUUID().toString().replace("-", ""));
 	}
 
 	public static final class SqsBuilder {
@@ -123,16 +128,16 @@ public final class Sqs {
 		return new SqsBuilder(queueName);
 	}
 
-	static Observable<SqsMessage> messages(Func0<AmazonSQSClient> sqsFactory,
-			Optional<Func0<AmazonS3Client>> s3Factory, String queueName, Optional<String> bucketName,
-			Optional<Observable<Integer>> waitTimesSeconds) {
+	static Observable<SqsMessage> messages(Func0<AmazonSQSClient> sqsFactory, Optional<Func0<AmazonS3Client>> s3Factory,
+			String queueName, Optional<String> bucketName, Optional<Observable<Integer>> waitTimesSeconds) {
 		Preconditions.checkNotNull(sqsFactory);
 		Preconditions.checkNotNull(s3Factory);
 		Preconditions.checkNotNull(queueName);
 		Preconditions.checkNotNull(bucketName);
 		Preconditions.checkNotNull(waitTimesSeconds);
-		return Observable.using(sqsFactory, sqs -> createObservableWithSqs(sqs, s3Factory, sqsFactory,
-				queueName, bucketName, waitTimesSeconds), sqs -> sqs.shutdown());
+		return Observable.using(sqsFactory,
+				sqs -> createObservableWithSqs(sqs, s3Factory, sqsFactory, queueName, bucketName, waitTimesSeconds),
+				sqs -> sqs.shutdown());
 	}
 
 	private static Observable<SqsMessage> createObservableWithSqs(AmazonSQSClient sqs,
@@ -140,8 +145,7 @@ public final class Sqs {
 			Optional<String> bucketName, Optional<Observable<Integer>> waitTimesSeconds) {
 
 		return Observable.using(() -> s3Factory.map(Func0::call), //
-				s3 -> createObservableWithS3(sqs, s3Factory, sqsFactory, queueName, bucketName, s3,
-						waitTimesSeconds),
+				s3 -> createObservableWithS3(sqs, s3Factory, sqsFactory, queueName, bucketName, s3, waitTimesSeconds),
 				s3 -> s3.ifPresent(AmazonS3Client::shutdown));
 	}
 

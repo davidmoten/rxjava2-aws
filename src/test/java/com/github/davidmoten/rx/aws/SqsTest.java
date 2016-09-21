@@ -290,6 +290,12 @@ public final class SqsTest {
 			Sqs.sendToQueueUsingS3(sqs, "queueUrl", s3, "bucket", new byte[] { 1, 2 });
 		} catch (RuntimeException e) {
 			assertTrue(e instanceof CompositeException);
+			InOrder inorder = Mockito.inOrder(sqs, s3);
+			inorder.verify(s3, Mockito.times(1)).putObject(Mockito.anyString(), Mockito.anyString(), Mockito.any(),
+					Mockito.any());
+			inorder.verify(sqs, Mockito.times(1)).sendMessage(Mockito.anyString(), Mockito.anyString());
+			inorder.verify(s3, Mockito.times(1)).deleteObject(Mockito.anyString(), Mockito.anyString());
+			inorder.verifyNoMoreInteractions();
 		}
 	}
 	// @SuppressWarnings("unused")
