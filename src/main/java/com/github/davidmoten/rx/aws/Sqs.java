@@ -24,6 +24,7 @@ import rx.Observable;
 import rx.Observer;
 import rx.Scheduler;
 import rx.functions.Func0;
+import rx.schedulers.Schedulers;
 
 public final class Sqs {
 
@@ -63,6 +64,13 @@ public final class Sqs {
 			return waitTimes( //
 					Observable.just(0) //
 							.concatWith(Observable.interval(interval, unit, scheduler).map(x -> 0)),
+					TimeUnit.SECONDS);
+		}
+		
+		public SqsBuilder interval(int interval, TimeUnit unit) {
+			return waitTimes( //
+					Observable.just(0) //
+							.concatWith(Observable.interval(interval, unit, Schedulers.io()).map(x -> 0)),
 					TimeUnit.SECONDS);
 		}
 
