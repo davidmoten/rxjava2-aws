@@ -123,34 +123,34 @@ public final class Sqs {
 		return new SqsBuilder(queueName);
 	}
 
-	static Observable<SqsMessage> messages(Func0<AmazonSQSClient> sqsClientFactory,
-			Optional<Func0<AmazonS3Client>> s3ClientFactory, String queueName, Optional<String> bucketName,
+	static Observable<SqsMessage> messages(Func0<AmazonSQSClient> sqsFactory,
+			Optional<Func0<AmazonS3Client>> s3Factory, String queueName, Optional<String> bucketName,
 			Optional<Observable<Integer>> waitTimesSeconds) {
-		Preconditions.checkNotNull(sqsClientFactory);
-		Preconditions.checkNotNull(s3ClientFactory);
+		Preconditions.checkNotNull(sqsFactory);
+		Preconditions.checkNotNull(s3Factory);
 		Preconditions.checkNotNull(queueName);
 		Preconditions.checkNotNull(bucketName);
 		Preconditions.checkNotNull(waitTimesSeconds);
-		return Observable.using(sqsClientFactory, sqs -> createObservableWithSqs(sqs, s3ClientFactory, sqsClientFactory,
+		return Observable.using(sqsFactory, sqs -> createObservableWithSqs(sqs, s3Factory, sqsFactory,
 				queueName, bucketName, waitTimesSeconds), sqs -> sqs.shutdown());
 	}
 
 	private static Observable<SqsMessage> createObservableWithSqs(AmazonSQSClient sqs,
-			Optional<Func0<AmazonS3Client>> s3ClientFactory, Func0<AmazonSQSClient> sqsClientFactory, String queueName,
+			Optional<Func0<AmazonS3Client>> s3Factory, Func0<AmazonSQSClient> sqsFactory, String queueName,
 			Optional<String> bucketName, Optional<Observable<Integer>> waitTimesSeconds) {
 
-		return Observable.using(() -> s3ClientFactory.map(Func0::call), //
-				s3 -> createObservableWithS3(sqs, s3ClientFactory, sqsClientFactory, queueName, bucketName, s3,
+		return Observable.using(() -> s3Factory.map(Func0::call), //
+				s3 -> createObservableWithS3(sqs, s3Factory, sqsFactory, queueName, bucketName, s3,
 						waitTimesSeconds),
 				s3 -> s3.ifPresent(AmazonS3Client::shutdown));
 	}
 
 	private static Observable<SqsMessage> createObservableWithS3(AmazonSQSClient sqs,
-			Optional<Func0<AmazonS3Client>> s3ClientFactory, Func0<AmazonSQSClient> sqsClientFactory, String queueName,
+			Optional<Func0<AmazonS3Client>> s3Factory, Func0<AmazonSQSClient> sqsFactory, String queueName,
 			Optional<String> bucketName, Optional<AmazonS3Client> s3, Optional<Observable<Integer>> waitTimesSeconds) {
-		final Service service = new Service(s3ClientFactory, sqsClientFactory, s3, sqs, queueName, bucketName);
+		final Service service = new Service(s3Factory, sqsFactory, s3, sqs, queueName, bucketName);
 		if (waitTimesSeconds.isPresent()) {
-			return createObservablePolling(sqs, s3ClientFactory, sqsClientFactory, queueName, bucketName, s3,
+			return createObservablePolling(sqs, s3Factory, sqsFactory, queueName, bucketName, s3,
 					waitTimesSeconds.get());
 		} else {
 			return createObservableContinousLongPolling(sqs, queueName, bucketName, s3, service);
@@ -158,9 +158,9 @@ public final class Sqs {
 	}
 
 	private static Observable<SqsMessage> createObservablePolling(AmazonSQSClient sqs,
-			Optional<Func0<AmazonS3Client>> s3ClientFactory, Func0<AmazonSQSClient> sqsClientFactory, String queueName,
+			Optional<Func0<AmazonS3Client>> s3Factory, Func0<AmazonSQSClient> sqsFactory, String queueName,
 			Optional<String> bucketName, Optional<AmazonS3Client> s3, Observable<Integer> waitTimesSeconds) {
-		final Service service = new Service(s3ClientFactory, sqsClientFactory, s3, sqs, queueName, bucketName);
+		final Service service = new Service(s3Factory, sqsFactory, s3, sqs, queueName, bucketName);
 		return waitTimesSeconds.flatMap(n -> get(sqs, queueName, bucketName, s3, service, n), 1);
 	}
 
