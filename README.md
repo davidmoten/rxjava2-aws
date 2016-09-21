@@ -12,6 +12,17 @@ Status: *pre-alpha*
 * Supports low latency delivery (using long-polling which blocks a thread)
 * Supports higher latency delivery via scheduled polling (reduced thread blocking)
 
+##Getting started
+Add the rxjava-aws dependency to your pom.xml:
+
+```java
+<dependency>
+    <groupId>com.github.davidmoten</groupId>
+    <artifactId>rxjava-aws</artifactId>
+    <version>VERSION_HERE</version>
+</dependency>
+```
+
 ##Reading messages from an AWS SQS queue
 The method below blocks a thread (using long polling). 
 
