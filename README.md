@@ -24,8 +24,7 @@ Add the rxjava-aws dependency to your pom.xml:
 ```
 
 ##Reading messages from an AWS SQS queue
-The method below blocks a thread (using long polling). 
-
+The method below blocks a thread (using long polling). When demand exists it connects to the AWS Rest API (using the Amazon Java SDK) and blocks up to 20s waiting for a message. IO-wise it's cheap but of course comes with the expense of blocking a thread.
 
 ```java
 Func0<AmazonSQSClient> sqs = () -> ...;
