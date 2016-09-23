@@ -5,7 +5,7 @@
 
 RxJava 1.x utilities for AWS (SQS, S3, ...)
 
-Status: *pre-alpha*
+Status: *released to Maven Central*
 
 * Represent an SQS queue as an `Observable<SqsMessage>`
 * Full backpressure support
