@@ -36,7 +36,7 @@ public final class Sqs {
 		// prevent instantiation
 	}
 
-	public static void sendToQueueUsingS3(AmazonSQSClient sqs, String queueUrl, AmazonS3Client s3, String bucketName,
+	public static String sendToQueueUsingS3(AmazonSQSClient sqs, String queueUrl, AmazonS3Client s3, String bucketName,
 			byte[] message, Func0<String> s3NameFactory) {
 		Preconditions.checkNotNull(sqs);
 		Preconditions.checkNotNull(s3);
@@ -57,11 +57,12 @@ public final class Sqs {
 				throw new CompositeException(e, e2);
 			}
 		}
+		return s3Id;
 	}
 
-	public static void sendToQueueUsingS3(AmazonSQSClient sqs, String queueUrl, AmazonS3Client s3, String bucketName,
+	public static String sendToQueueUsingS3(AmazonSQSClient sqs, String queueUrl, AmazonS3Client s3, String bucketName,
 			byte[] message) {
-		sendToQueueUsingS3(sqs, queueUrl, s3, bucketName, message, () -> UUID.randomUUID().toString().replace("-", ""));
+		return sendToQueueUsingS3(sqs, queueUrl, s3, bucketName, message, () -> UUID.randomUUID().toString().replace("-", ""));
 	}
 
 	public static final class SqsBuilder {
