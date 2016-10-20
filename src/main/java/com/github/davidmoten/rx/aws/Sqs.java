@@ -37,13 +37,13 @@ public final class Sqs {
 	}
 
 	public static String sendToQueueUsingS3(AmazonSQSClient sqs, String queueUrl, AmazonS3Client s3, String bucketName,
-			byte[] message, Func0<String> s3NameFactory) {
+			byte[] message, Func0<String> s3IdFactory) {
 		Preconditions.checkNotNull(sqs);
 		Preconditions.checkNotNull(s3);
 		Preconditions.checkNotNull(queueUrl);
 		Preconditions.checkNotNull(bucketName);
 		Preconditions.checkNotNull(message);
-		String s3Id = UUID.randomUUID().toString().replace("-", "");
+		String s3Id = s3IdFactory.call();
 		ObjectMetadata metadata = new ObjectMetadata();
 		metadata.setContentLength(message.length);
 		s3.putObject(bucketName, s3Id, new ByteArrayInputStream(message), metadata);
