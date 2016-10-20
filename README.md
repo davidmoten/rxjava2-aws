@@ -110,6 +110,16 @@ Sqs.queueName("my-queue")
    // go!
    .subscribe(subscriber);
 ```  
+
+##Sending messages to a an AWS SQS queue via S3 storage
+
+To place a message on an AWS SQS queue for picking up via the routine above:
+
+```java
+String s3Id = 
+  Sqs.sendToQueueUsingS3(sqs, queueUrl, s3, bucketName, messageBytes, s3IdFactory);
+```
+
 ##Deleting messages from the queue
 `deleteMessage()` will work quite happily even if the source has been terminated/unsubscribed. While the source has not been terminated you get slightly better performance because the source's sqs and s3 client objects can be used to perform the delete.
 
