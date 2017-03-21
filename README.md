@@ -12,7 +12,7 @@ Status: *released to Maven Central*
 * Supports low latency delivery (using long-polling which blocks a thread)
 * Supports higher latency delivery via scheduled polling (reduced thread blocking)
 
-##Getting started
+## Getting started
 Add the rxjava-aws dependency to your pom.xml:
 
 ```java
@@ -23,7 +23,7 @@ Add the rxjava-aws dependency to your pom.xml:
 </dependency>
 ```
 
-##Reading messages from an AWS SQS queue
+## Reading messages from an AWS SQS queue
 The method below blocks a thread (using long polling). When demand exists it connects to the AWS REST API (using the Amazon Java SDK) and blocks up to 20s waiting for a message. IO-wise it's cheap but of course comes with the expense of blocking a thread. Note that as backpressure is supported while no requests for messages exist the REST API will not be called.
 
 ```java
@@ -78,7 +78,7 @@ Sqs.queueName("my-queue")
    ...
 ```
 
-##Reading messages from an AWS SQS queue via S3 storage
+## Reading messages from an AWS SQS queue via S3 storage
 SQS queues are restricted to String messages (legal xml characters only) with a maximum size of 256K (binary messages would be Base64 encoded). If you want to pass larger messages then one pattern is to store the message content in a resource in an S3 bucket and put the resource name on to the queue. To receive the message you read the identifier from the queue and retrieve the resource bytes from the S3 bucket. Once you've dealt with the whole message you delete the S3 resource then remove the message from the queue.  
 
 To read and delete messages from an AWS queue in this way (with full backpressure support):
@@ -111,7 +111,7 @@ Sqs.queueName("my-queue")
    .subscribe(subscriber);
 ```  
 
-##Sending messages to a an AWS SQS queue via S3 storage
+## Sending messages to a an AWS SQS queue via S3 storage
 
 To place a message on an AWS SQS queue for picking up via the routine above:
 
@@ -120,7 +120,7 @@ String s3Id =
   Sqs.sendToQueueUsingS3(sqs, queueUrl, s3, bucketName, messageBytes, s3IdFactory);
 ```
 
-##Deleting messages from the queue
+## Deleting messages from the queue
 `deleteMessage()` will work quite happily even if the source has been terminated/unsubscribed. While the source has not been terminated you get slightly better performance because the source's sqs and s3 client objects can be used to perform the delete.
 
 ```java
