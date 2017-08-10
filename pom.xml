@@ -80,7 +80,7 @@
 		<connection>scm:git:https://github.com/davidmoten/rxjava2-aws.git</connection>
 		<developerConnection>scm:git:https://github.com/davidmoten/rxjava2-aws.git</developerConnection>
 		<url>scm:git:https://github.com:davidmoten/rxjava2-aws.git</url>
-		<tag>0.1.2</tag>
+		<tag>0.1</tag>
 	</scm>
 
 	<dependencies>
@@ -115,31 +115,12 @@
 		</dependency>
 
 		<!-- Test Dependencies -->
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-log4j12</artifactId>
-			<version>${slf4j.version}</version>
-			<scope>test</scope>
-			<exclusions>
-				<exclusion>
-					<artifactId>log4j</artifactId>
-					<groupId>log4j</groupId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-
-		<dependency>
-			<artifactId>log4j</artifactId>
-			<groupId>log4j</groupId>
-			<version>1.2.17</version>
-			<scope>test</scope>
-		</dependency>
 
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<version>4.12</version>
-			<scope>compile</scope>
+			<scope>test</scope>
 			<optional>true</optional>
 		</dependency>
 
