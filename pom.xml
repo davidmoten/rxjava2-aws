@@ -79,7 +79,6 @@
 		<connection>scm:git:https://github.com/davidmoten/rxjava2-aws.git</connection>
 		<developerConnection>scm:git:https://github.com/davidmoten/rxjava2-aws.git</developerConnection>
 		<url>scm:git:https://github.com:davidmoten/rxjava2-aws.git</url>
-		<tag>0.1</tag>
 	</scm>
 
 	<dependencies>
