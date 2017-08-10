@@ -68,7 +68,7 @@ public final class SqsTest {
                 .messages() //
                 .map(m -> m.message()) //
                 .doOnError(Throwable::printStackTrace) //
-                .test() //
+                .test(0) //
                 .requestMore(1) //
                 .assertValue("body1")//
                 .assertNotComplete() //
@@ -262,7 +262,7 @@ public final class SqsTest {
         ts.assertValues("body1", "body2", "body3") //
                 .assertNotTerminated();
         sched.advanceTimeBy(1, TimeUnit.MINUTES);
-        ts.assertNoValues() //
+        ts.assertValueCount(3) //
                 .assertNotTerminated() //
                 .cancel();
         final InOrder inorder = Mockito.inOrder(sqs);
