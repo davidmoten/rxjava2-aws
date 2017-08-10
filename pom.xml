@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
 	<modelVersion>4.0.0</modelVersion>
 
@@ -8,19 +9,19 @@
 		<artifactId>sonatype-parent</artifactId>
 		<version>0.1</version>
 	</parent>
-	<artifactId>rxjava-aws</artifactId>
-	<version>0.1.4-SNAPSHOT</version>
+	<artifactId>rxjava2-aws</artifactId>
+	<version>0.1-SNAPSHOT</version>
 	<name>${project.artifactId}</name>
-	<description>RxJava utilities for AWS</description>
+	<description>RxJava 2 utilities for AWS</description>
 	<packaging>jar</packaging>
 
-	<url>http://github.com/davidmoten/rxjava-aws</url>
+	<url>http://github.com/davidmoten/rxjava2-aws</url>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<maven.compiler.target>1.8</maven.compiler.target>
-		<rxjava.version>1.2.7</rxjava.version>
+		<rxjava.version>2.1.2</rxjava.version>
 		<jmh.version>1.11.1</jmh.version>
 		<exec.version>1.4.0</exec.version>
 		<slf4j.version>1.7.12</slf4j.version>
@@ -53,12 +54,12 @@
 
 	<ciManagement>
 		<system>Travis</system>
-		<url>https://travis-ci.org/davidmoten/rxjava-aws</url>
+		<url>https://travis-ci.org/davidmoten/rxjava2-aws</url>
 	</ciManagement>
 
 	<issueManagement>
 		<system>GitHub</system>
-		<url>https://github.com/davidmoten/rxjava-aws/issues</url>
+		<url>https://github.com/davidmoten/rxjava2-aws/issues</url>
 	</issueManagement>
 
 	<inceptionYear>2016</inceptionYear>
@@ -76,23 +77,23 @@
 	</developers>
 
 	<scm>
-		<connection>scm:git:https://github.com/davidmoten/rxjava-aws.git</connection>
-		<developerConnection>scm:git:https://github.com/davidmoten/rxjava-aws.git</developerConnection>
-		<url>scm:git:https://github.com:davidmoten/rxjava-aws.git</url>
+		<connection>scm:git:https://github.com/davidmoten/rxjava2-aws.git</connection>
+		<developerConnection>scm:git:https://github.com/davidmoten/rxjava2-aws.git</developerConnection>
+		<url>scm:git:https://github.com:davidmoten/rxjava2-aws.git</url>
 		<tag>0.1.2</tag>
 	</scm>
 
 	<dependencies>
 		<dependency>
-			<groupId>io.reactivex</groupId>
+			<groupId>io.reactivex.rxjava2</groupId>
 			<artifactId>rxjava</artifactId>
 			<version>${rxjava.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.github.davidmoten</groupId>
-			<artifactId>rxjava-extras</artifactId>
-			<version>0.7.9.23</version>
+			<artifactId>rxjava2-extras</artifactId>
+			<version>0.1.12</version>
 		</dependency>
 
 		<dependency>
@@ -107,14 +108,13 @@
 			<version>${aws.sdk.version}</version>
 		</dependency>
 
-		<!-- Test Dependencies -->
 		<dependency>
 			<groupId>com.github.davidmoten</groupId>
-			<artifactId>rxjava-slf4j</artifactId>
-			<version>0.5.4</version>
-			<scope>test</scope>
+			<artifactId>guava-mini</artifactId>
+			<version>0.1.1</version>
 		</dependency>
 
+		<!-- Test Dependencies -->
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-log4j12</artifactId>

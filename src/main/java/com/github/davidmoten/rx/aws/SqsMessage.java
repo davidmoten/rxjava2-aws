@@ -3,13 +3,13 @@ package com.github.davidmoten.rx.aws;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.concurrent.Callable;
 
 import com.amazonaws.AmazonWebServiceClient;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.sqs.AmazonSQSClient;
-import com.github.davidmoten.util.Preconditions;
+import com.github.davidmoten.guavamini.Preconditions;
 
-import rx.functions.Func0;
 
 public final class SqsMessage {
 
@@ -43,7 +43,7 @@ public final class SqsMessage {
     public void deleteMessage() {
         try {
             deleteMessage(Client.FROM_SOURCE);
-        } catch (RuntimeException e) {
+        } catch (final RuntimeException e) {
             deleteMessage(Client.FROM_FACTORY);
         }
     }
@@ -56,10 +56,21 @@ public final class SqsMessage {
         }
     }
 
-    private void deleteMessageUsingFactory(Optional<Func0<AmazonS3Client>> s3Factory,
-            Func0<AmazonSQSClient> sqsFactory) {
-        Optional<AmazonS3Client> s3 = s3Factory.map(Func0::call);
-        AmazonSQSClient sqs = sqsFactory.call();
+    private void deleteMessageUsingFactory(Optional<Callable<AmazonS3Client>> s3Factory,
+            Callable<AmazonSQSClient> sqsFactory) {
+        final Optional<AmazonS3Client> s3 = s3Factory.map(x -> {
+            try {
+                return x.call();
+            } catch (final Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+        AmazonSQSClient sqs;
+        try {
+            sqs = sqsFactory.call();
+        } catch (final Exception e) {
+            throw new RuntimeException(e);
+        }
         try {
             deleteMessage(s3, sqs);
         } finally {
@@ -72,7 +83,7 @@ public final class SqsMessage {
     static void shutdown(AmazonWebServiceClient client) {
         try {
             client.shutdown();
-        } catch (RuntimeException e) {
+        } catch (final RuntimeException e) {
             // ignore
         }
     }
@@ -98,14 +109,14 @@ public final class SqsMessage {
 
     static class Service {
 
-        final Func0<AmazonSQSClient> sqsFactory;
-        final Optional<Func0<AmazonS3Client>> s3Factory;
+        final Callable<AmazonSQSClient> sqsFactory;
+        final Optional<Callable<AmazonS3Client>> s3Factory;
         final Optional<AmazonS3Client> s3;
         final AmazonSQSClient sqs;
         final String queueName;
         final Optional<String> bucketName;
 
-        Service(Optional<Func0<AmazonS3Client>> s3Factory, Func0<AmazonSQSClient> sqsFactory,
+        Service(Optional<Callable<AmazonS3Client>> s3Factory, Callable<AmazonSQSClient> sqsFactory,
                 Optional<AmazonS3Client> s3, AmazonSQSClient sqs, String queueName,
                 Optional<String> bucketName) {
             Preconditions.checkNotNull(s3Factory);
