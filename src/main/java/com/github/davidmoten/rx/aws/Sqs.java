@@ -25,7 +25,6 @@ import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import com.github.davidmoten.guavamini.Preconditions;
 import com.github.davidmoten.rx.aws.SqsMessage.Service;
-import com.github.davidmoten.rx2.Functions;
 
 import io.reactivex.Emitter;
 import io.reactivex.Flowable;
@@ -215,7 +214,7 @@ public final class Sqs {
                             .collect(Collectors.toList()))) //
                             .repeat())
                     .takeWhile(list -> !list.isEmpty()) //
-                    .flatMapIterable(Functions.identity()) //
+                    .flatMapIterable(x -> x) //
                     .filter(opt -> opt.isPresent()).map(opt -> opt.get());
         });//
     }

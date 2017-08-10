@@ -91,12 +91,6 @@
 		</dependency>
 
 		<dependency>
-			<groupId>com.github.davidmoten</groupId>
-			<artifactId>rxjava2-extras</artifactId>
-			<version>0.1.12</version>
-		</dependency>
-
-		<dependency>
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-s3</artifactId>
 			<version>${aws.sdk.version}</version>
