@@ -29,7 +29,7 @@ Add the rxjava2-aws dependency to your pom.xml:
 The method below blocks a thread (using long polling). When demand exists it connects to the AWS REST API (using the Amazon Java SDK) and blocks up to 20s waiting for a message. IO-wise it's cheap but of course comes with the expense of blocking a thread. Note that as backpressure is supported while no requests for messages exist the REST API will not be called.
 
 ```java
-Func0<AmazonSQSClient> sqs = () -> ...;
+Callable<AmazonSQSClient> sqs = () -> ...;
 
 Sqs.queueName("my-queue")
     // specify factory for Amazon SQS Client
@@ -86,8 +86,8 @@ SQS queues are restricted to String messages (legal xml characters only) with a 
 To read and delete messages from an AWS queue in this way (with full backpressure support):
 
 ```java
-Func0<AmazonSQSClient> sqs = () -> ...;
-Func0<AmazonS3Client> s3 = () -> ...; 
+Callable<AmazonSQSClient> sqs = () -> ...;
+Callable<AmazonS3Client> s3 = () -> ...; 
 
 Sqs.queueName("my-queue")
     // specify factory for Amazon SQS Client
