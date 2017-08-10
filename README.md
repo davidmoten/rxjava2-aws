@@ -134,7 +134,7 @@ SqsMessage message =
       .s3Factory(s3)
       .messages()
       .subscribeOn(Schedulers.io())
-      .first().toBlocking().single();
+      .blockingFirst();
       
 // this will still work fine        
 message.deleteMessage();
