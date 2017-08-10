@@ -3,22 +3,24 @@
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.davidmoten/rxjava-aws/badge.svg?style=flat)](https://maven-badges.herokuapp.com/maven-central/com.github.davidmoten/rxjava-aws)<br/>
 [![codecov](https://codecov.io/gh/davidmoten/rxjava-aws/branch/master/graph/badge.svg)](https://codecov.io/gh/davidmoten/rxjava-aws)
 
-RxJava 1.x utilities for AWS (SQS, S3, ...)
+RxJava 2.x utilities for AWS (SQS, S3, ...)
+
+RxJava 1.x support is at [rxjava-aws](https://github.com/davidmoten/rxjava-aws).
 
 Status: *released to Maven Central*
 
-* Represent an SQS queue as an `Observable<SqsMessage>`
+* Represent an SQS queue as a `Flowable<SqsMessage>`
 * Full backpressure support
 * Supports low latency delivery (using long-polling which blocks a thread)
 * Supports higher latency delivery via scheduled polling (reduced thread blocking)
 
 ## Getting started
-Add the rxjava-aws dependency to your pom.xml:
+Add the rxjava2-aws dependency to your pom.xml:
 
 ```java
 <dependency>
     <groupId>com.github.davidmoten</groupId>
-    <artifactId>rxjava-aws</artifactId>
+    <artifactId>rxjava2-aws</artifactId>
     <version>VERSION_HERE</version>
 </dependency>
 ```
