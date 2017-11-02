@@ -15,10 +15,12 @@ import org.mockito.InOrder;
 import org.mockito.Mockito;
 
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 import com.amazonaws.services.sqs.model.GetQueueUrlResult;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
@@ -227,8 +229,8 @@ public final class SqsTest {
 
     @Test(expected = NullPointerException.class)
     public void testBucketNameAndS3FactoryMustBothBeSpecified() {
-        Sqs.queueName("queue").sqsFactory(() -> new AmazonSQSClient()).bucketName(null)
-                .s3Factory(() -> new AmazonS3Client()).messages();
+        Sqs.queueName("queue").sqsFactory(() -> AmazonSQSClientBuilder.defaultClient()).bucketName(null)
+                .s3Factory(() -> AmazonS3ClientBuilder.defaultClient()).messages();
     }
 
     @Test(timeout = 5000)
