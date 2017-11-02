@@ -6,10 +6,9 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 
 import com.amazonaws.AmazonWebServiceClient;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.sqs.AmazonSQS;
 import com.github.davidmoten.guavamini.Preconditions;
-
 
 public final class SqsMessage {
 
@@ -19,8 +18,7 @@ public final class SqsMessage {
     private final Optional<String> s3Id;
     private final Service service;
 
-    SqsMessage(String messageReceiptHandle, byte[] bytes, long timestamp, Optional<String> s3Id,
-            Service service) {
+    SqsMessage(String messageReceiptHandle, byte[] bytes, long timestamp, Optional<String> s3Id, Service service) {
         this.messageReceiptHandle = messageReceiptHandle;
         this.bytes = bytes;
         this.timestamp = timestamp;
@@ -56,16 +54,15 @@ public final class SqsMessage {
         }
     }
 
-    private void deleteMessageUsingFactory(Optional<Callable<AmazonS3Client>> s3Factory,
-            Callable<AmazonSQSClient> sqsFactory) {
-        final Optional<AmazonS3Client> s3 = s3Factory.map(x -> {
+    private void deleteMessageUsingFactory(Optional<Callable<AmazonS3>> s3Factory, Callable<AmazonSQS> sqsFactory) {
+        final Optional<AmazonS3> s3 = s3Factory.map(x -> {
             try {
                 return x.call();
             } catch (final Exception e) {
                 throw new RuntimeException(e);
             }
         });
-        AmazonSQSClient sqs;
+        AmazonSQS sqs;
         try {
             sqs = sqsFactory.call();
         } catch (final Exception e) {
@@ -74,21 +71,12 @@ public final class SqsMessage {
         try {
             deleteMessage(s3, sqs);
         } finally {
-            s3.ifPresent(SqsMessage::shutdown);
-            shutdown(sqs);
+            s3.ifPresent(Util::shutdown);
+            Util.shutdown(sqs);
         }
     }
 
-    // visible for testing
-    static void shutdown(AmazonWebServiceClient client) {
-        try {
-            client.shutdown();
-        } catch (final RuntimeException e) {
-            // ignore
-        }
-    }
-
-    public void deleteMessage(Optional<AmazonS3Client> s3, AmazonSQSClient sqs) {
+    public void deleteMessage(Optional<AmazonS3> s3, AmazonSQS sqs) {
         Preconditions.checkArgument(!s3.isPresent() || s3Id.isPresent(), "s3Id must be present");
         if (s3Id.isPresent()) {
             s3.get().deleteObject(service.bucketName.get(), s3Id.get());
@@ -98,9 +86,9 @@ public final class SqsMessage {
 
     @Override
     public String toString() {
-        return "MessageAndBytes [messageReceiptHandle=" + messageReceiptHandle + ", bytes="
-                + Arrays.toString(bytes) + ", timestamp=" + timestamp + ", s3Id=" + s3Id
-                + ", bucketName=" + service.bucketName + ", queueName=" + service.queueName + "]";
+        return "MessageAndBytes [messageReceiptHandle=" + messageReceiptHandle + ", bytes=" + Arrays.toString(bytes)
+                + ", timestamp=" + timestamp + ", s3Id=" + s3Id + ", bucketName=" + service.bucketName + ", queueName="
+                + service.queueName + "]";
     }
 
     public static enum Client {
@@ -109,16 +97,15 @@ public final class SqsMessage {
 
     static class Service {
 
-        final Callable<AmazonSQSClient> sqsFactory;
-        final Optional<Callable<AmazonS3Client>> s3Factory;
-        final Optional<AmazonS3Client> s3;
-        final AmazonSQSClient sqs;
+        final Callable<AmazonSQS> sqsFactory;
+        final Optional<Callable<AmazonS3>> s3Factory;
+        final Optional<AmazonS3> s3;
+        final AmazonSQS sqs;
         final String queueName;
         final Optional<String> bucketName;
 
-        Service(Optional<Callable<AmazonS3Client>> s3Factory, Callable<AmazonSQSClient> sqsFactory,
-                Optional<AmazonS3Client> s3, AmazonSQSClient sqs, String queueName,
-                Optional<String> bucketName) {
+        Service(Optional<Callable<AmazonS3>> s3Factory, Callable<AmazonSQS> sqsFactory, Optional<AmazonS3> s3,
+                AmazonSQS sqs, String queueName, Optional<String> bucketName) {
             Preconditions.checkNotNull(s3Factory);
             Preconditions.checkNotNull(sqsFactory);
             Preconditions.checkNotNull(s3);

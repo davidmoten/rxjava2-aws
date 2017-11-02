@@ -97,7 +97,7 @@ public class SqsMessageTest {
     public void shutdownDoesNotRethrowException() {
         AmazonSQSClient sqs = Mockito.mock(AmazonSQSClient.class);
         Mockito.doThrow(new RuntimeException()).when(sqs).shutdown();
-        SqsMessage.shutdown(sqs);
+        Util.shutdown(sqs);
     }
 
     @Test
