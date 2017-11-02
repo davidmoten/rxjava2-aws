@@ -1,4 +1,4 @@
-package com.github.davidmoten.rx.aws;
+package com.github.davidmoten.rx2.aws;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -24,7 +24,7 @@ import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import com.github.davidmoten.guavamini.Preconditions;
-import com.github.davidmoten.rx.aws.SqsMessage.Service;
+import com.github.davidmoten.rx2.aws.SqsMessage.Service;
 
 import io.reactivex.Emitter;
 import io.reactivex.Flowable;

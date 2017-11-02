@@ -1,4 +1,4 @@
-package com.github.davidmoten.rx.aws;
+package com.github.davidmoten.rx2.aws;
 
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentials;

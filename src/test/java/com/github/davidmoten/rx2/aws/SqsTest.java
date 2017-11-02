@@ -1,4 +1,4 @@
-package com.github.davidmoten.rx.aws;
+package com.github.davidmoten.rx2.aws;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -27,6 +27,8 @@ import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import com.amazonaws.util.StringInputStream;
 import com.github.davidmoten.junit.Asserts;
+import com.github.davidmoten.rx2.aws.Sqs;
+import com.github.davidmoten.rx2.aws.SqsMessage;
 
 import io.reactivex.exceptions.CompositeException;
 import io.reactivex.schedulers.TestScheduler;

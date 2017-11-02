@@ -1,4 +1,4 @@
-package com.github.davidmoten.rx.aws;
+package com.github.davidmoten.rx2.aws;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.sqs.AmazonSQS;

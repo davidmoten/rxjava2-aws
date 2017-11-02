@@ -1,4 +1,4 @@
-package com.github.davidmoten.rx.aws;
+package com.github.davidmoten.rx2.aws;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
