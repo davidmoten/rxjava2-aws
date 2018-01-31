@@ -36,7 +36,7 @@ Sqs.queueName("my-queue")
    .sqsFactory(sqs)
    // get messages as observable
    .messages()
-   .// process the message
+   // process the message
    .doOnNext(m -> System.out.println(m.message()))
    // delete the message (if processing succeeded)
    .doOnNext(m -> m.deleteMessage())
