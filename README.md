@@ -29,7 +29,7 @@ Add the rxjava2-aws dependency to your pom.xml:
 The method below blocks a thread (using long polling). When demand exists it connects to the AWS REST API (using the Amazon Java SDK) and blocks up to 20s waiting for a message. IO-wise it's cheap but of course comes with the expense of blocking a thread. Note that as backpressure is supported while no requests for messages exist the REST API will not be called.
 
 ```java
-Callable<AmazonSQSClient> sqs = () -> ...;
+Callable<AmazonSQS> sqs = () -> ...;
 
 Sqs.queueName("my-queue")
     // specify factory for Amazon SQS Client
@@ -45,8 +45,10 @@ Sqs.queueName("my-queue")
    // run in the background
    .subscribeOn(Schedulers.io())
    // any errors then delay and resubscribe (on an io thread)
-   .retryWhen(RetryWhen.delay(30, TimeUnit.SECONDS).build(), 
-              Schedulers.io())
+   .retryWhen(RetryWhen
+         .delay(30, TimeUnit.SECONDS) 
+         .scheduler(Schedulers.io())
+         .build())
    // go!
    .subscribe(subscriber);
 ```
