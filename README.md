@@ -89,8 +89,8 @@ SQS queues are restricted to String messages (legal xml characters only) with a 
 To read and delete messages from an AWS queue in this way (with full backpressure support):
 
 ```java
-Callable<AmazonSQSClient> sqs = () -> ...;
-Callable<AmazonS3Client> s3 = () -> ...; 
+Callable<AmazonSQS> sqs = () -> ...;
+Callable<AmazonS3> s3 = () -> ...; 
 
 Sqs.queueName("my-queue")
     // specify factory for Amazon SQS Client
@@ -109,9 +109,11 @@ Sqs.queueName("my-queue")
    .doOnError(e -> log.warn(e.getMessage(), e))
    // run in the background
    .subscribeOn(Schedulers.io())
-   // any errors then delay and resubscribe
-   .retryWhen(RetryWhen.delay(30, TimeUnit.SECONDS).build(),
-              Schedulers.io())
+   // any errors then delay and resubscribe (on an io thread)
+   .retryWhen(RetryWhen
+         .delay(30, TimeUnit.SECONDS) 
+         .scheduler(Schedulers.io())
+         .build())
    // go!
    .subscribe(subscriber);
 ```  
