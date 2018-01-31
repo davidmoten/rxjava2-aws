@@ -52,6 +52,7 @@ Sqs.queueName("my-queue")
    // go!
    .subscribe(subscriber);
 ```
+Note that to use the `RetryWhen` builder requires [*rxjava2-extras*](https://github.com/davidmoten/rxjava2-extras) dependency.
 
 Use `.interval` for scheduled polling:
 
@@ -114,6 +115,7 @@ Sqs.queueName("my-queue")
    // go!
    .subscribe(subscriber);
 ```  
+Note that to use the `RetryWhen` builder requires [*rxjava2-extras*](https://github.com/davidmoten/rxjava2-extras) dependency.
 
 ## Sending messages to a an AWS SQS queue via S3 storage
 
