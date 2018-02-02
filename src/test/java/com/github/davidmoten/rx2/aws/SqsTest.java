@@ -7,8 +7,12 @@ import static org.mockito.Mockito.mock;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import org.junit.Test;
 import org.mockito.InOrder;
@@ -27,8 +31,6 @@ import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import com.amazonaws.util.StringInputStream;
 import com.github.davidmoten.junit.Asserts;
-import com.github.davidmoten.rx2.aws.Sqs;
-import com.github.davidmoten.rx2.aws.SqsMessage;
 
 import io.reactivex.exceptions.CompositeException;
 import io.reactivex.schedulers.TestScheduler;
@@ -43,8 +45,16 @@ public final class SqsTest {
         Mockito.when(sqs.getQueueUrl(queueName)).thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
         Mockito.when(sqs.receiveMessage(Mockito.<ReceiveMessageRequest>any()))
                 .thenReturn(new ReceiveMessageResult().withMessages(new Message().withBody("body1")));
+        List<String> list = new CopyOnWriteArrayList<>();
+        Consumer<String> logger = new Consumer<String>() {
+            @Override
+            public void accept(String msg) {
+                list.add(msg);
+            }
+        };
         Sqs.queueName(queueName) //
                 .sqsFactory(() -> sqs) //
+                .logger(logger)
                 .messages() //
                 .map(m -> m.message()) //
                 .doOnError(Throwable::printStackTrace) //
@@ -58,6 +68,7 @@ public final class SqsTest {
         inorder.verify(sqs, Mockito.times(1)).receiveMessage(Mockito.<ReceiveMessageRequest>any());
         inorder.verify(sqs, Mockito.times(1)).shutdown();
         inorder.verifyNoMoreInteractions();
+        assertEquals(Arrays.asList("long polling for messages on queueName=queue"), list);
     }
 
     @Test(timeout = 5000)
