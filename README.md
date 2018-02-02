@@ -34,6 +34,8 @@ Callable<AmazonSQS> sqs = () -> ...;
 Sqs.queueName("my-queue")
     // specify factory for Amazon SQS Client
    .sqsFactory(sqs)
+   // log polls
+   .logger(System.out::println)
    // get messages as observable
    .messages()
    // process the message
