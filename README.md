@@ -29,14 +29,14 @@ Add the rxjava2-aws dependency to your pom.xml:
 The method below blocks a thread (using long polling). When demand exists it connects to the AWS REST API (using the Amazon Java SDK) and blocks up to 20s waiting for a message. IO-wise it's cheap but of course comes with the expense of blocking a thread. Note that as backpressure is supported while no requests for messages exist the REST API will not be called.
 
 ```java
-Callable<AmazonSQSClient> sqs = () -> ...;
+Callable<AmazonSQS> sqs = () -> ...;
 
 Sqs.queueName("my-queue")
     // specify factory for Amazon SQS Client
    .sqsFactory(sqs)
    // get messages as observable
    .messages()
-   .// process the message
+   // process the message
    .doOnNext(m -> System.out.println(m.message()))
    // delete the message (if processing succeeded)
    .doOnNext(m -> m.deleteMessage())
@@ -45,11 +45,14 @@ Sqs.queueName("my-queue")
    // run in the background
    .subscribeOn(Schedulers.io())
    // any errors then delay and resubscribe (on an io thread)
-   .retryWhen(RetryWhen.delay(30, TimeUnit.SECONDS).build(), 
-              Schedulers.io())
+   .retryWhen(RetryWhen
+         .delay(30, TimeUnit.SECONDS) 
+         .scheduler(Schedulers.io())
+         .build())
    // go!
    .subscribe(subscriber);
 ```
+Note that to use the `RetryWhen` builder requires [*rxjava2-extras*](https://github.com/davidmoten/rxjava2-extras) dependency.
 
 Use `.interval` for scheduled polling:
 
@@ -86,8 +89,8 @@ SQS queues are restricted to String messages (legal xml characters only) with a 
 To read and delete messages from an AWS queue in this way (with full backpressure support):
 
 ```java
-Callable<AmazonSQSClient> sqs = () -> ...;
-Callable<AmazonS3Client> s3 = () -> ...; 
+Callable<AmazonSQS> sqs = () -> ...;
+Callable<AmazonS3> s3 = () -> ...; 
 
 Sqs.queueName("my-queue")
     // specify factory for Amazon SQS Client
@@ -106,12 +109,15 @@ Sqs.queueName("my-queue")
    .doOnError(e -> log.warn(e.getMessage(), e))
    // run in the background
    .subscribeOn(Schedulers.io())
-   // any errors then delay and resubscribe
-   .retryWhen(RetryWhen.delay(30, TimeUnit.SECONDS).build(),
-              Schedulers.io())
+   // any errors then delay and resubscribe (on an io thread)
+   .retryWhen(RetryWhen
+         .delay(30, TimeUnit.SECONDS) 
+         .scheduler(Schedulers.io())
+         .build())
    // go!
    .subscribe(subscriber);
 ```  
+Note that to use the `RetryWhen` builder requires [*rxjava2-extras*](https://github.com/davidmoten/rxjava2-extras) dependency.
 
 ## Sending messages to a an AWS SQS queue via S3 storage
 
