@@ -24,6 +24,14 @@ public final class SqsMessage {
         this.s3Id = s3Id;
         this.service = service;
     }
+    
+    public String messageReceiptHandle() {
+        return messageReceiptHandle;
+    }
+    
+    public Optional<String> s3Id() {
+        return s3Id;
+    }
 
     public byte[] bytes() {
         return bytes;
