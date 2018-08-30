@@ -229,7 +229,8 @@ public final class Sqs {
                             .repeat())
                     .takeWhile(list -> !list.isEmpty()) //
                     .flatMapIterable(x -> x) //
-                    .filter(opt -> opt.isPresent()).map(opt -> opt.get());
+                    .filter(opt -> opt.isPresent()) //
+                    .map(opt -> opt.get());
         });//
     }
 
