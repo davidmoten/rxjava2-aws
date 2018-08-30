@@ -174,11 +174,11 @@ public final class Sqs {
         Preconditions.checkNotNull(waitTimesSeconds);
         Preconditions.checkNotNull(logger);
         return Flowable.using(sqsFactory,
-                sqs -> createObservableWithSqs(sqs, s3Factory, sqsFactory, queueName, bucketName, waitTimesSeconds, logger),
+                sqs -> createFlowableWithSqs(sqs, s3Factory, sqsFactory, queueName, bucketName, waitTimesSeconds, logger),
                 sqs -> sqs.shutdown());
     }
 
-    private static Flowable<SqsMessage> createObservableWithSqs(AmazonSQS sqs, Optional<Callable<AmazonS3>> s3Factory,
+    private static Flowable<SqsMessage> createFlowableWithSqs(AmazonSQS sqs, Optional<Callable<AmazonS3>> s3Factory,
             Callable<AmazonSQS> sqsFactory, String queueName, Optional<String> bucketName,
             Optional<Flowable<Integer>> waitTimesSeconds, Consumer<? super String> logger) {
 
@@ -189,23 +189,23 @@ public final class Sqs {
                 throw new RuntimeException(e);
             }
         }), //
-                s3 -> createObservableWithS3(sqs, s3Factory, sqsFactory, queueName, bucketName, s3, waitTimesSeconds, logger),
+                s3 -> createFlowableWithS3(sqs, s3Factory, sqsFactory, queueName, bucketName, s3, waitTimesSeconds, logger),
                 s3 -> s3.ifPresent(Util::shutdown));
     }
 
-    private static Flowable<SqsMessage> createObservableWithS3(AmazonSQS sqs, Optional<Callable<AmazonS3>> s3Factory,
+    private static Flowable<SqsMessage> createFlowableWithS3(AmazonSQS sqs, Optional<Callable<AmazonS3>> s3Factory,
             Callable<AmazonSQS> sqsFactory, String queueName, Optional<String> bucketName, Optional<AmazonS3> s3,
             Optional<Flowable<Integer>> waitTimesSeconds,Consumer<? super String> logger) {
         final Service service = new Service(s3Factory, sqsFactory, s3, sqs, queueName, bucketName);
         if (waitTimesSeconds.isPresent()) {
-            return createObservablePolling(sqs, s3Factory, sqsFactory, queueName, bucketName, s3,
+            return createFlowablePolling(sqs, s3Factory, sqsFactory, queueName, bucketName, s3,
                     waitTimesSeconds.get(), logger);
         } else {
-            return createObservableContinousLongPolling(sqs, queueName, bucketName, s3, service, logger);
+            return createFlowableContinousLongPolling(sqs, queueName, bucketName, s3, service, logger);
         }
     }
 
-    private static Flowable<SqsMessage> createObservablePolling(AmazonSQS sqs, Optional<Callable<AmazonS3>> s3Factory,
+    private static Flowable<SqsMessage> createFlowablePolling(AmazonSQS sqs, Optional<Callable<AmazonS3>> s3Factory,
             Callable<AmazonSQS> sqsFactory, String queueName, Optional<String> bucketName, Optional<AmazonS3> s3,
             Flowable<Integer> waitTimesSeconds,Consumer<? super String> logger) {
         final Service service = new Service(s3Factory, sqsFactory, s3, sqs, queueName, bucketName);
@@ -233,7 +233,7 @@ public final class Sqs {
         });//
     }
 
-    private static Flowable<SqsMessage> createObservableContinousLongPolling(AmazonSQS sqs, String queueName,
+    private static Flowable<SqsMessage> createFlowableContinousLongPolling(AmazonSQS sqs, String queueName,
             Optional<String> bucketName, Optional<AmazonS3> s3, final Service service,Consumer<? super String> logger) {
         final ContinuousLongPollingSyncOnSubscribe c = new ContinuousLongPollingSyncOnSubscribe(sqs, queueName, s3,
                 bucketName, service, logger);
