@@ -29,11 +29,13 @@ Add the rxjava2-aws dependency to your pom.xml:
 The method below blocks a thread (using long polling). When demand exists it connects to the AWS REST API (using the Amazon Java SDK) and blocks up to 20s waiting for a message. IO-wise it's cheap but of course comes with the expense of blocking a thread. Note that as backpressure is supported while no requests for messages exist the REST API will not be called.
 
 ```java
-Callable<AmazonSQS> sqs = () -> ...;
+AmazonSQS sqs(String region) {
+    return AmazonSQSClientBuilder.standard().withRegion(region).build();
+}
 
 Sqs.queueName("my-queue")
     // specify factory for Amazon SQS Client
-   .sqsFactory(sqs)
+   .sqsFactory(sqs("us-east-1"))
    // log polls
    .logger(System.out::println)
    // get messages as observable
@@ -54,8 +56,20 @@ Sqs.queueName("my-queue")
    // go!
    .subscribe(subscriber);
 ```
-Note that to use the `RetryWhen` builder requires [*rxjava2-extras*](https://github.com/davidmoten/rxjava2-extras) dependency.
 
+**Note:** In case of a (transient) error (eg. AWS rate limit exceeded errors), it's useful to have the `RetryWhen` clause in place. Note that in case of an error, the old sqs client gets disposed, and a new one gets created using the `sqsFactory` provided.
+
+**Note:** To use the `RetryWhen` builder requires [*rxjava2-extras*](https://github.com/davidmoten/rxjava2-extras) dependency.
+
+```java
+<dependency>
+    <groupId>com.github.davidmoten</groupId>
+    <artifactId>rxjava2-extras</artifactId>
+    <version>VERSION_HERE</version>
+</dependency>
+```
+
+### Scheduled polling
 Use `.interval` for scheduled polling:
 
 
@@ -91,16 +105,20 @@ SQS queues are restricted to String messages (legal xml characters only) with a 
 To read and delete messages from an AWS queue in this way (with full backpressure support):
 
 ```java
-Callable<AmazonSQS> sqs = () -> ...;
-Callable<AmazonS3> s3 = () -> ...; 
+AmazonSQS sqs(String region) {
+    return AmazonSQSClientBuilder.standard().withRegion(region).build();
+}
+AmazonS3 s3(String region) {
+    return AmazonS3ClientBuilder.standard().withRegion(region).build();
+}
 
 Sqs.queueName("my-queue")
     // specify factory for Amazon SQS Client
-   .sqsFactory(sqs)
+   .sqsFactory(sqs("us-east-1"))
    // specify S3 bucket name
    .bucketName("my-bucket")
    // specify factory for Amazon S3 Client
-   .s3Factory(s3)
+   .s3Factory(s3("us-east-1"))
    // get messages as observable
    .messages()
    // process the message
