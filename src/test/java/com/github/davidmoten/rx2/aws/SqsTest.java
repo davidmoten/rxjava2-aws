@@ -313,6 +313,11 @@ public final class SqsTest {
             inorder.verifyNoMoreInteractions();
         }
     }
+    
+    @Test
+    public void testCanUseNewAwsBuildersInFactoryMethods() {
+        Sqs.queueName("queue").sqsFactory(() -> AmazonSQSClientBuilder.standard().withRegion("ap-southeast-2").build());
+    }
     // @SuppressWarnings("unused")
     // public static void main(String[] args) {
     // ClientConfiguration cc;
