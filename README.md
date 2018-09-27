@@ -29,13 +29,9 @@ Add the rxjava2-aws dependency to your pom.xml:
 The method below blocks a thread (using long polling). When demand exists it connects to the AWS REST API (using the Amazon Java SDK) and blocks up to 20s waiting for a message. IO-wise it's cheap but of course comes with the expense of blocking a thread. Note that as backpressure is supported while no requests for messages exist the REST API will not be called.
 
 ```java
-AmazonSQS sqs(String region) {
-    return AmazonSQSClientBuilder.standard().withRegion(region).build();
-}
-
 Sqs.queueName("my-queue")
     // specify factory for Amazon SQS Client
-   .sqsFactory(sqs("us-east-1"))
+   .sqsFactory(() -> AmazonSQSClientBuilder.standard().withRegion(region).build())
    // log polls
    .logger(System.out::println)
    // get messages as observable
@@ -76,7 +72,7 @@ Use `.interval` for scheduled polling:
 ```java
 Sqs.queueName("my-queue")
     // specify factory for Amazon SQS Client
-   .sqsFactory(sqs)
+   .sqsFactory(() -> ...)
    // every 60 seconds check for messages
    .interval(60, TimeUnit.SECONDS, Schedulers.io())
    // get messages as observable
@@ -89,7 +85,7 @@ or for lower level control of scheduled polling use `.waitTimes`:
 ```java
 Sqs.queueName("my-queue")
     // specify factory for Amazon SQS Client
-   .sqsFactory(sqs)
+   .sqsFactory(() -> ...)
    // every 60 seconds check for messages and wait for up to 5 seconds
    .waitTimes(
        Observable.interval(60, TimeUnit.SECONDS, Scheduler.io()).map(x -> 5),
@@ -105,20 +101,13 @@ SQS queues are restricted to String messages (legal xml characters only) with a 
 To read and delete messages from an AWS queue in this way (with full backpressure support):
 
 ```java
-AmazonSQS sqs(String region) {
-    return AmazonSQSClientBuilder.standard().withRegion(region).build();
-}
-AmazonS3 s3(String region) {
-    return AmazonS3ClientBuilder.standard().withRegion(region).build();
-}
-
 Sqs.queueName("my-queue")
     // specify factory for Amazon SQS Client
-   .sqsFactory(sqs("us-east-1"))
+   .sqsFactory(() -> () -> AmazonSQSClientBuilder.standard().withRegion(region).build())
    // specify S3 bucket name
    .bucketName("my-bucket")
    // specify factory for Amazon S3 Client
-   .s3Factory(s3("us-east-1"))
+   .s3Factory(() -> () -> AmazonS3ClientBuilder.standard().withRegion(region).build())
    // get messages as observable
    .messages()
    // process the message
@@ -155,9 +144,9 @@ String s3Id =
 // get just one message
 SqsMessage message = 
    Sqs.queueName("my-queue")
-      .sqsFactory(sqs)
+      .sqsFactory(() -> ...)
       .bucketName("my-bucket")
-      .s3Factory(s3)
+      .s3Factory(() -> ...)
       .messages()
       .subscribeOn(Schedulers.io())
       .blockingFirst();
