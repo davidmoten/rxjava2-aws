@@ -103,11 +103,11 @@ To read and delete messages from an AWS queue in this way (with full backpressur
 ```java
 Sqs.queueName("my-queue")
     // specify factory for Amazon SQS Client
-   .sqsFactory(() -> () -> AmazonSQSClientBuilder.standard().withRegion(region).build())
+   .sqsFactory(() -> AmazonSQSClientBuilder.standard().withRegion(region).build())
    // specify S3 bucket name
    .bucketName("my-bucket")
    // specify factory for Amazon S3 Client
-   .s3Factory(() -> () -> AmazonS3ClientBuilder.standard().withRegion(region).build())
+   .s3Factory(() -> AmazonS3ClientBuilder.standard().withRegion(region).build())
    // get messages as observable
    .messages()
    // process the message
