@@ -3,7 +3,6 @@ package com.github.davidmoten.rx2.aws;
 import org.junit.Test;
 
 import com.github.davidmoten.junit.Asserts;
-import com.github.davidmoten.rx2.aws.Util;
 
 public class UtilTest {
 
@@ -11,5 +10,5 @@ public class UtilTest {
     public void isUtilityClass() {
         Asserts.assertIsUtilityClass(Util.class);
     }
-
+    
 }
