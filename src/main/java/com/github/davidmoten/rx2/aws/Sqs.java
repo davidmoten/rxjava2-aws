@@ -169,7 +169,7 @@ public final class Sqs {
     }
     
     public static SqsBuilder queueUrl(String queueUrl) {
-        Preconditions.checkArgument(!queueUrl.startsWith(HTTPS), "queueUrl must be an https url: " + queueUrl);
+        Preconditions.checkArgument(queueUrl.startsWith(HTTPS), "queueUrl must be an https url: " + queueUrl);
         return new SqsBuilder(queueUrl);
     }
 
