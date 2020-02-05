@@ -35,6 +35,8 @@ import io.reactivex.schedulers.Schedulers;
 
 public final class Sqs {
 
+    private static final String HTTPS = "https://";
+
     private Sqs() {
         // prevent instantiation
     }
@@ -96,16 +98,16 @@ public final class Sqs {
         }};
     
     public static final class SqsBuilder {
-        private final String queueName;
+        private final String queueNameOrUrl;
         private Callable<AmazonSQS> sqs = null;
         private Optional<Callable<AmazonS3>> s3 = Optional.empty();
         private Optional<String> bucketName = Optional.empty();
         private Optional<Flowable<Integer>> waitTimesSeconds = Optional.empty();
         private Consumer<? super String> logger  = DO_NOTHING; 
 
-        SqsBuilder(String queueName) {
-            Preconditions.checkNotNull(queueName);
-            this.queueName = queueName;
+        SqsBuilder(String queueNameOrUrl) {
+            Preconditions.checkNotNull(queueNameOrUrl);
+            this.queueNameOrUrl = queueNameOrUrl;
         }
 
         public ViaS3Builder bucketName(String bucketName) {
@@ -141,7 +143,7 @@ public final class Sqs {
         }
 
         public Flowable<SqsMessage> messages() {
-            return Sqs.messages(sqs, s3, queueName, bucketName, waitTimesSeconds, logger);
+            return Sqs.messages(sqs, s3, queueNameOrUrl, bucketName, waitTimesSeconds, logger);
         }
 
     }
@@ -162,24 +164,30 @@ public final class Sqs {
     }
 
     public static SqsBuilder queueName(String queueName) {
+        Preconditions.checkArgument(!queueName.startsWith(HTTPS), "queueName cannot be a url: " + queueName);
         return new SqsBuilder(queueName);
+    }
+    
+    public static SqsBuilder queueUrl(String queueUrl) {
+        Preconditions.checkArgument(!queueUrl.startsWith(HTTPS), "queueUrl must be an https url: " + queueUrl);
+        return new SqsBuilder(queueUrl);
     }
 
     static Flowable<SqsMessage> messages(Callable<AmazonSQS> sqsFactory, Optional<Callable<AmazonS3>> s3Factory,
-            String queueName, Optional<String> bucketName, Optional<Flowable<Integer>> waitTimesSeconds, Consumer<? super String> logger) {
+            String queueNameOrUrl, Optional<String> bucketName, Optional<Flowable<Integer>> waitTimesSeconds, Consumer<? super String> logger) {
         Preconditions.checkNotNull(sqsFactory);
         Preconditions.checkNotNull(s3Factory);
-        Preconditions.checkNotNull(queueName);
+        Preconditions.checkNotNull(queueNameOrUrl);
         Preconditions.checkNotNull(bucketName);
         Preconditions.checkNotNull(waitTimesSeconds);
         Preconditions.checkNotNull(logger);
         return Flowable.using(sqsFactory,
-                sqs -> createFlowableWithSqs(sqs, s3Factory, sqsFactory, queueName, bucketName, waitTimesSeconds, logger),
+                sqs -> createFlowableWithSqs(sqs, s3Factory, sqsFactory, queueNameOrUrl, bucketName, waitTimesSeconds, logger),
                 sqs -> sqs.shutdown());
     }
 
     private static Flowable<SqsMessage> createFlowableWithSqs(AmazonSQS sqs, Optional<Callable<AmazonS3>> s3Factory,
-            Callable<AmazonSQS> sqsFactory, String queueName, Optional<String> bucketName,
+            Callable<AmazonSQS> sqsFactory, String queueNameOrUrl, Optional<String> bucketName,
             Optional<Flowable<Integer>> waitTimesSeconds, Consumer<? super String> logger) {
 
         return Flowable.using(() -> s3Factory.map(x -> {
@@ -189,39 +197,39 @@ public final class Sqs {
                 throw new RuntimeException(e);
             }
         }), //
-                s3 -> createFlowableWithS3(sqs, s3Factory, sqsFactory, queueName, bucketName, s3, waitTimesSeconds, logger),
+                s3 -> createFlowableWithS3(sqs, s3Factory, sqsFactory, queueNameOrUrl, bucketName, s3, waitTimesSeconds, logger),
                 s3 -> s3.ifPresent(Util::shutdown));
     }
 
     private static Flowable<SqsMessage> createFlowableWithS3(AmazonSQS sqs, Optional<Callable<AmazonS3>> s3Factory,
-            Callable<AmazonSQS> sqsFactory, String queueName, Optional<String> bucketName, Optional<AmazonS3> s3,
+            Callable<AmazonSQS> sqsFactory, String queueNameOrUrl, Optional<String> bucketName, Optional<AmazonS3> s3,
             Optional<Flowable<Integer>> waitTimesSeconds,Consumer<? super String> logger) {
-        final Service service = new Service(s3Factory, sqsFactory, s3, sqs, queueName, bucketName);
+        final Service service = new Service(s3Factory, sqsFactory, s3, sqs, queueNameOrUrl, bucketName);
         if (waitTimesSeconds.isPresent()) {
-            return createFlowablePolling(sqs, s3Factory, sqsFactory, queueName, bucketName, s3,
+            return createFlowablePolling(sqs, s3Factory, sqsFactory, queueNameOrUrl, bucketName, s3,
                     waitTimesSeconds.get(), logger);
         } else {
-            return createFlowableContinousLongPolling(sqs, queueName, bucketName, s3, service, logger);
+            return createFlowableContinousLongPolling(sqs, queueNameOrUrl, bucketName, s3, service, logger);
         }
     }
 
     private static Flowable<SqsMessage> createFlowablePolling(AmazonSQS sqs, Optional<Callable<AmazonS3>> s3Factory,
-            Callable<AmazonSQS> sqsFactory, String queueName, Optional<String> bucketName, Optional<AmazonS3> s3,
+            Callable<AmazonSQS> sqsFactory, String queueNameOrUrl, Optional<String> bucketName, Optional<AmazonS3> s3,
             Flowable<Integer> waitTimesSeconds,Consumer<? super String> logger) {
-        final Service service = new Service(s3Factory, sqsFactory, s3, sqs, queueName, bucketName);
-        return waitTimesSeconds.flatMap(n -> get(sqs, queueName, bucketName, s3, service, n, logger), 1);
+        final Service service = new Service(s3Factory, sqsFactory, s3, sqs, queueNameOrUrl, bucketName);
+        return waitTimesSeconds.flatMap(n -> get(sqs, queueNameOrUrl, bucketName, s3, service, n, logger), 1);
     }
 
-    private static Flowable<SqsMessage> get(AmazonSQS sqs, String queueName, Optional<String> bucketName,
+    private static Flowable<SqsMessage> get(AmazonSQS sqs, String queueNameOrUrl, Optional<String> bucketName,
             Optional<AmazonS3> s3, Service service, int waitTimeSeconds,Consumer<? super String> logger) {
         return Flowable.defer(() -> {
-            final String queueUrl = sqs.getQueueUrl(queueName).getQueueUrl();
-            return Flowable.just(sqs.receiveMessage(request(queueName, waitTimeSeconds)) //
+            final String queueUrl = queueUrl(sqs, queueNameOrUrl);
+            return Flowable.just(sqs.receiveMessage(request(queueNameOrUrl, waitTimeSeconds)) //
                     .getMessages() //
                     .stream() //
                     .map(m -> Sqs.getNextMessage(m, queueUrl, bucketName, s3, sqs, service)) //
                     .collect(Collectors.toList())) //
-                    .concatWith(Flowable.defer(() -> Flowable.just(sqs.receiveMessage(request(queueName, 0)) //
+                    .concatWith(Flowable.defer(() -> Flowable.just(sqs.receiveMessage(request(queueNameOrUrl, 0)) //
                             .getMessages() //
                             .stream() //
                             .map(m -> Sqs.getNextMessage(m, queueUrl, bucketName, s3, sqs, service)) //
@@ -234,9 +242,9 @@ public final class Sqs {
         });//
     }
 
-    private static Flowable<SqsMessage> createFlowableContinousLongPolling(AmazonSQS sqs, String queueName,
+    private static Flowable<SqsMessage> createFlowableContinousLongPolling(AmazonSQS sqs, String queueNameOrUrl,
             Optional<String> bucketName, Optional<AmazonS3> s3, final Service service,Consumer<? super String> logger) {
-        final ContinuousLongPollingSyncOnSubscribe c = new ContinuousLongPollingSyncOnSubscribe(sqs, queueName, s3,
+        final ContinuousLongPollingSyncOnSubscribe c = new ContinuousLongPollingSyncOnSubscribe(sqs, queueNameOrUrl, s3,
                 bucketName, service, logger);
         return Flowable.generate(c, c);
     }
@@ -245,7 +253,7 @@ public final class Sqs {
             implements Callable<State>, BiConsumer<State, Emitter<SqsMessage>> {
 
         private final AmazonSQS sqs;
-        private final String queueName;
+        private final String queueNameOrUrl;
         private final Optional<AmazonS3> s3;
         private final Optional<String> bucketName;
         private final Service service;
@@ -254,10 +262,10 @@ public final class Sqs {
         private String queueUrl;
         private Consumer<? super String> logger;
 
-        public ContinuousLongPollingSyncOnSubscribe(AmazonSQS sqs, String queueName, Optional<AmazonS3> s3,
+        public ContinuousLongPollingSyncOnSubscribe(AmazonSQS sqs, String queueNameOrUrl, Optional<AmazonS3> s3,
                 Optional<String> bucketName, Service service,Consumer<? super String> logger) {
             this.sqs = sqs;
-            this.queueName = queueName;
+            this.queueNameOrUrl = queueNameOrUrl;
             this.s3 = s3;
             this.bucketName = bucketName;
             this.service = service;
@@ -266,7 +274,7 @@ public final class Sqs {
 
         @Override
         public State call() {
-            queueUrl = sqs.getQueueUrl(queueName).getQueueUrl();
+            queueUrl = queueUrl(sqs, queueNameOrUrl);
             request = new ReceiveMessageRequest(queueUrl) //
                     .withWaitTimeSeconds(20) //
                     .withMaxNumberOfMessages(10);
@@ -279,7 +287,7 @@ public final class Sqs {
             Optional<SqsMessage> next = Optional.empty();
             while (!next.isPresent()) {
                 while (q.isEmpty()) {
-                    logger.accept("long polling for messages on queueName="+ queueName);
+                    logger.accept("long polling for messages on queue="+ queueNameOrUrl);
                     final ReceiveMessageResult result = sqs.receiveMessage(request);
                     q.addAll(result.getMessages());
                 }
@@ -344,4 +352,12 @@ public final class Sqs {
         }
     }
 
+    private static String queueUrl(AmazonSQS sqs, String queueNameOrUrl) {
+        if (queueNameOrUrl.startsWith(HTTPS)) {
+            return queueNameOrUrl;
+        } else {
+            return sqs.getQueueUrl(queueNameOrUrl).getQueueUrl();
+        }
+    }
+    
 }

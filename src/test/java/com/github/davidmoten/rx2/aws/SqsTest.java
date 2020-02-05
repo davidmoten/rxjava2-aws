@@ -68,7 +68,7 @@ public final class SqsTest {
         inorder.verify(sqs, Mockito.times(1)).receiveMessage(Mockito.<ReceiveMessageRequest>any());
         inorder.verify(sqs, Mockito.times(1)).shutdown();
         inorder.verifyNoMoreInteractions();
-        assertEquals(Arrays.asList("long polling for messages on queueName=queue"), list);
+        assertEquals(Arrays.asList("long polling for messages on queue=queue"), list);
     }
 
     @Test(timeout = 5000)
