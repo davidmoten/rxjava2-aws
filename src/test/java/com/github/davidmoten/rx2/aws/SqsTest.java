@@ -25,6 +25,7 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
+import com.amazonaws.services.sqs.model.GetQueueUrlRequest;
 import com.amazonaws.services.sqs.model.GetQueueUrlResult;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
@@ -42,7 +43,7 @@ public final class SqsTest {
     public void testFirstCallToReceiveMessagesReturnsOneMessage() {
         final AmazonSQSClient sqs = Mockito.mock(AmazonSQSClient.class);
         final String queueName = "queue";
-        Mockito.when(sqs.getQueueUrl(queueName)).thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
+        Mockito.when(sqs.getQueueUrl(Mockito.<GetQueueUrlRequest> any())).thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
         Mockito.when(sqs.receiveMessage(Mockito.<ReceiveMessageRequest>any()))
                 .thenReturn(new ReceiveMessageResult().withMessages(new Message().withBody("body1")));
         List<String> list = new CopyOnWriteArrayList<>();
@@ -64,7 +65,7 @@ public final class SqsTest {
                 .assertComplete() //
                 .assertValue("body1");
         final InOrder inorder = Mockito.inOrder(sqs);
-        inorder.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(queueName);
+        inorder.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(Mockito.<GetQueueUrlRequest>any());
         inorder.verify(sqs, Mockito.times(1)).receiveMessage(Mockito.<ReceiveMessageRequest>any());
         inorder.verify(sqs, Mockito.times(1)).shutdown();
         inorder.verifyNoMoreInteractions();
@@ -75,7 +76,7 @@ public final class SqsTest {
     public void testFirstCallToReceiveMessagesReturnsOneMessageAndHonoursBackpressure() {
         final AmazonSQSClient sqs = Mockito.mock(AmazonSQSClient.class);
         final String queueName = "queue";
-        Mockito.when(sqs.getQueueUrl(queueName)).thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
+        Mockito.when(sqs.getQueueUrl(Mockito.<GetQueueUrlRequest> any())).thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
         Mockito.when(sqs.receiveMessage(Mockito.<ReceiveMessageRequest>any()))
                 .thenReturn(new ReceiveMessageResult().withMessages(new Message().withBody("body1")));
         Sqs.queueName(queueName) //
@@ -89,7 +90,7 @@ public final class SqsTest {
                 .assertNotComplete() //
                 .cancel();
         final InOrder inorder = Mockito.inOrder(sqs);
-        inorder.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(queueName);
+        inorder.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(Mockito.<GetQueueUrlRequest>any());
         inorder.verify(sqs, Mockito.times(1)).receiveMessage(Mockito.<ReceiveMessageRequest>any());
         inorder.verify(sqs, Mockito.times(1)).shutdown();
         inorder.verifyNoMoreInteractions();
@@ -99,7 +100,7 @@ public final class SqsTest {
     public void testFirstCallToReceiveMessagesReturnsNoMessagesThenSecondCallReturnsTwoMessages() {
         final AmazonSQSClient sqs = Mockito.mock(AmazonSQSClient.class);
         final String queueName = "queue";
-        Mockito.when(sqs.getQueueUrl(queueName)).thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
+        Mockito.when(sqs.getQueueUrl(Mockito.<GetQueueUrlRequest> any())).thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
         Mockito.when(sqs.receiveMessage(Mockito.<ReceiveMessageRequest>any())).thenReturn(new ReceiveMessageResult())
                 .thenReturn(new ReceiveMessageResult().withMessages(new Message().withBody("body1"),
                         new Message().withBody("body2")));
@@ -114,7 +115,7 @@ public final class SqsTest {
                 .assertComplete() //
                 .assertValues("body1", "body2");
         final InOrder inorder = Mockito.inOrder(sqs);
-        inorder.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(queueName);
+        inorder.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(Mockito.<GetQueueUrlRequest>any());
         inorder.verify(sqs, Mockito.times(2)).receiveMessage(Mockito.<ReceiveMessageRequest>any());
         inorder.verify(sqs, Mockito.times(1)).shutdown();
         inorder.verifyNoMoreInteractions();
@@ -126,7 +127,7 @@ public final class SqsTest {
         final AmazonS3Client s3 = Mockito.mock(AmazonS3Client.class);
         final String queueName = "queue";
         final String s3Id = "123";
-        Mockito.when(sqs.getQueueUrl(queueName)).thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
+        Mockito.when(sqs.getQueueUrl(Mockito.<GetQueueUrlRequest> any())).thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
         final String receiptHandle = "abc";
         Mockito.when(sqs.receiveMessage(Mockito.<ReceiveMessageRequest>any())).thenReturn(
                 new ReceiveMessageResult().withMessages(new Message().withReceiptHandle(receiptHandle).withBody(s3Id)));
@@ -153,7 +154,7 @@ public final class SqsTest {
                 .assertComplete() //
                 .assertValues("body1");
         final InOrder inorder = Mockito.inOrder(sqs, s3, s3Object);
-        inorder.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(queueName);
+        inorder.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(Mockito.<GetQueueUrlRequest> any());
         inorder.verify(sqs, Mockito.times(1)).receiveMessage(Mockito.<ReceiveMessageRequest>any());
         inorder.verify(s3, Mockito.times(1)).doesObjectExist(bucketName, s3Id);
         inorder.verify(s3, Mockito.times(1)).getObject(bucketName, s3Id);
@@ -174,7 +175,7 @@ public final class SqsTest {
         final String queueName = "queue";
         final String s3Id = "123";
         final String s3Id2 = "124";
-        Mockito.when(sqs.getQueueUrl(queueName)).thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
+        Mockito.when(sqs.getQueueUrl(Mockito.<GetQueueUrlRequest> any())).thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
         final String receiptHandle = "abc";
         final String receiptHandle2 = "abc2";
         Mockito.when(sqs.receiveMessage(Mockito.<ReceiveMessageRequest>any()))
@@ -206,7 +207,7 @@ public final class SqsTest {
                 .assertComplete() //
                 .assertValues("body2");
         final InOrder inorder = Mockito.inOrder(sqs, s3, s3Object);
-        inorder.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(queueName);
+        inorder.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(Mockito.<GetQueueUrlRequest> any());
         inorder.verify(sqs, Mockito.times(1)).receiveMessage(Mockito.<ReceiveMessageRequest>any());
         inorder.verify(s3, Mockito.times(1)).doesObjectExist(bucketName, s3Id);
         inorder.verify(sqs, Mockito.times(1)).deleteMessage(queueName, receiptHandle);
@@ -251,7 +252,7 @@ public final class SqsTest {
         final TestScheduler sched = new TestScheduler();
         final AmazonSQSClient sqs = Mockito.mock(AmazonSQSClient.class);
         final String queueName = "queue";
-        Mockito.when(sqs.getQueueUrl(queueName)).thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
+        Mockito.when(sqs.getQueueUrl(Mockito.<GetQueueUrlRequest> any())).thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
         Mockito.when(sqs.receiveMessage(Mockito.<ReceiveMessageRequest>any())) //
                 .thenReturn(new ReceiveMessageResult()) //
                 .thenReturn(new ReceiveMessageResult().withMessages(new Message().withBody("body1"))) //
@@ -281,9 +282,8 @@ public final class SqsTest {
                 .assertNotTerminated() //
                 .cancel();
         final InOrder inorder = Mockito.inOrder(sqs);
-        inorder.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(queueName);
-        // TODO why times(1), should be times(6)?
-        inorder.verify(sqs, Mockito.times(1)).receiveMessage(Mockito.<ReceiveMessageRequest>any());
+        inorder.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(Mockito.<GetQueueUrlRequest> any());        // TODO why times(1), should be times(6)?
+        inorder.verify(sqs, Mockito.times(7)).receiveMessage(Mockito.<ReceiveMessageRequest>any());
         inorder.verify(sqs, Mockito.times(1)).shutdown();
         inorder.verifyNoMoreInteractions();
     }

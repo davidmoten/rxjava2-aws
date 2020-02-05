@@ -88,14 +88,14 @@ public final class SqsMessage {
         if (s3Id.isPresent()) {
             s3.get().deleteObject(service.bucketName.get(), s3Id.get());
         }
-        sqs.deleteMessage(service.queueName, messageReceiptHandle);
+        sqs.deleteMessage(service.queueUrl, messageReceiptHandle);
     }
 
     @Override
     public String toString() {
         return "MessageAndBytes [messageReceiptHandle=" + messageReceiptHandle + ", bytes=" + Arrays.toString(bytes)
                 + ", timestamp=" + timestamp + ", s3Id=" + s3Id + ", bucketName=" + service.bucketName + ", queueName="
-                + service.queueName + "]";
+                + service.queueUrl + "]";
     }
 
     public static enum Client {
@@ -108,22 +108,22 @@ public final class SqsMessage {
         final Optional<Callable<AmazonS3>> s3Factory;
         final Optional<AmazonS3> s3;
         final AmazonSQS sqs;
-        final String queueName;
+        final String queueUrl;
         final Optional<String> bucketName;
 
         Service(Optional<Callable<AmazonS3>> s3Factory, Callable<AmazonSQS> sqsFactory, Optional<AmazonS3> s3,
-                AmazonSQS sqs, String queueName, Optional<String> bucketName) {
+                AmazonSQS sqs, String queueUrl, Optional<String> bucketName) {
             Preconditions.checkNotNull(s3Factory);
             Preconditions.checkNotNull(sqsFactory);
             Preconditions.checkNotNull(s3);
             Preconditions.checkNotNull(sqs);
-            Preconditions.checkNotNull(queueName);
+            Preconditions.checkNotNull(queueUrl);
             Preconditions.checkNotNull(bucketName);
             this.s3Factory = s3Factory;
             this.sqsFactory = sqsFactory;
             this.s3 = s3;
             this.sqs = sqs;
-            this.queueName = queueName;
+            this.queueUrl = queueUrl;
             this.bucketName = bucketName;
         }
 
