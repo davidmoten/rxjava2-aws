@@ -64,7 +64,14 @@ Sqs.queueName("my-queue")
     <version>VERSION_HERE</version>
 </dependency>
 ```
+### Options for specifying the queue
+Here are some variants:
 
+```java
+Sqs.queueName(queueName)...
+Sqs.ownerAccountId(accountId).queueName(queueName)...
+Sqs.queueUrl(queueUrl)...
+```
 ### Scheduled polling
 Use `.interval` for scheduled polling:
 
