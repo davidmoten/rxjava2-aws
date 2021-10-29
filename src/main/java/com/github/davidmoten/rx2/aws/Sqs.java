@@ -121,9 +121,9 @@ public final class Sqs {
         private Optional<Callable<AmazonS3>> s3 = Optional.empty();
         private Optional<String> bucketName = Optional.empty();
         private Optional<Flowable<Integer>> waitTimesSeconds = Optional.empty();
-        private Consumer<? super String> logger = (String s) -> {};
+        private Consumer<? super String> logger = x -> {};
         private Runnable prePoll = () -> {};
-        private Consumer<? super Optional<Throwable>> postPoll = (Optional<Throwable> t) -> {};
+        private Consumer<? super Optional<Throwable>> postPoll = x -> {};
 
         SqsBuilder(SqsQueue queue) {
             Preconditions.checkNotNull(queue);
@@ -249,10 +249,10 @@ public final class Sqs {
                 .concatWith( //
                         Flowable.fromCallable(() -> sqsMessages(service, 0, prePoll, postPoll)) //
                                 .repeat()) //
-                .takeWhile(list -> !list.isEmpty()) //
+                .takeWhile(x -> !x.isEmpty()) //
                 .flatMapIterable(x -> x) //
-                .filter(opt -> opt.isPresent()) //
-                .map(opt -> opt.get());
+                .filter(Optional::isPresent) //
+                .map(Optional::get);
     }
     
     private static List<Message> messages(Service service, int waitTimeSeconds, Runnable prePoll,
