@@ -24,7 +24,6 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
-import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import com.github.davidmoten.guavamini.Preconditions;
 import com.github.davidmoten.rx2.aws.SqsMessage.Service;
 
@@ -164,13 +163,13 @@ public final class Sqs {
         }
         
         public SqsBuilder prePoll(Runnable prePoll) {
-        	this.prePoll = prePoll;
-        	return this;
+            this.prePoll = prePoll;
+            return this;
         }
         
         public SqsBuilder postPoll(Consumer<? super Optional<Throwable>> postPoll) {
-        	this.postPoll = postPoll;
-        	return this;
+            this.postPoll = postPoll;
+            return this;
         }
 
         public Flowable<SqsMessage> messages() {
@@ -213,7 +212,7 @@ public final class Sqs {
     private static Flowable<SqsMessage> createFlowableWithSqs(AmazonSQS sqs, Optional<Callable<AmazonS3>> s3Factory,
             Callable<AmazonSQS> sqsFactory, SqsQueue queue, Optional<String> bucketName,
             Optional<Flowable<Integer>> waitTimesSeconds, Consumer<? super String> logger,
-            Runnable prePoll,	Consumer<? super Optional<Throwable>> postPoll) {
+            Runnable prePoll,    Consumer<? super Optional<Throwable>> postPoll) {
 
         return Flowable.using(() -> s3Factory.map(x -> {
             try {
@@ -229,7 +228,7 @@ public final class Sqs {
     private static Flowable<SqsMessage> createFlowableWithS3(AmazonSQS sqs, Optional<Callable<AmazonS3>> s3Factory,
             Callable<AmazonSQS> sqsFactory, SqsQueue queue, Optional<String> bucketName, Optional<AmazonS3> s3,
             Optional<Flowable<Integer>> waitTimesSeconds, Consumer<? super String> logger, Runnable prePoll,
-			Consumer<? super Optional<Throwable>> postPoll) {
+            Consumer<? super Optional<Throwable>> postPoll) {
         final Service service = new Service(s3Factory, sqsFactory, s3, sqs, queue.getQueueUrl(sqs), bucketName);
         if (waitTimesSeconds.isPresent()) {
             return createFlowablePolling(waitTimesSeconds.get(), service, logger, prePoll, postPoll);
@@ -243,40 +242,46 @@ public final class Sqs {
         return waitTimesSeconds.flatMap(n -> get(n, service, logger, prePoll, postPoll), 1);
     }
 
-    private static Flowable<SqsMessage> get(int waitTimeSeconds, Service service, Consumer<? super String> logger, 
-    										Runnable prePoll, Consumer<? super Optional<Throwable>> postPoll) {
-		return Flowable.fromCallable( //
-                () -> service.sqs.receiveMessage(request(service.queueUrl, waitTimeSeconds)) //
-                        .getMessages() //
-                        .stream() //
-                        .map(m -> Sqs.getNextMessage(m, service)) //
-                        .collect(Collectors
-                                .toList())) //
-            .concatWith(Flowable.defer(() -> {
-            	try {
-            		prePoll.run();
-            		List<Message> list = service.sqs.receiveMessage(request(service.queueUrl, 0)).getMessages();
-            		postPoll.accept(Optional.empty());
-            		return Flowable.fromIterable(list) //
-            		        .map(m -> Sqs.getNextMessage(m, service)) //
-            		        .toList() //
-            		        .toFlowable();
-            	} catch(Throwable t) {
-            		postPoll.accept(Optional.of(t));
-            		throw t;
-            	}
-            }) //
-            .repeat()) //
-            .takeWhile(list -> !list.isEmpty()) //
-            .flatMapIterable(x -> x) //
-            .filter(opt -> opt.isPresent()) //
-            .map(opt -> opt.get());
-	}
+    private static Flowable<SqsMessage> get(int waitTimeSeconds, Service service,
+            Consumer<? super String> logger, Runnable prePoll,
+            Consumer<? super Optional<Throwable>> postPoll) {
+        return Flowable.fromCallable(() -> sqsMessages(service, waitTimeSeconds, prePoll, postPoll)) //
+                .concatWith( //
+                        Flowable.fromCallable(() -> sqsMessages(service, 0, prePoll, postPoll)) //
+                                .repeat()) //
+                .takeWhile(list -> !list.isEmpty()) //
+                .flatMapIterable(x -> x) //
+                .filter(opt -> opt.isPresent()) //
+                .map(opt -> opt.get());
+    }
+    
+    private static List<Message> messages(Service service, int waitTimeSeconds, Runnable prePoll,
+            Consumer<? super Optional<Throwable>> postPoll) {
+        prePoll.run();
+        List<Message> list;
+        try {
+            list = service.sqs.receiveMessage(request(service.queueUrl, waitTimeSeconds)) //
+                    .getMessages();
+        } catch (Throwable t) {
+            postPoll.accept(Optional.of(t));
+            throw t;
+        }
+        postPoll.accept(Optional.empty());
+        return list;
+    }
+    
+    private static List<Optional<SqsMessage>> sqsMessages(Service service, int waitTimeSeconds,Runnable prePoll, Consumer<? super Optional<Throwable>> postPoll) {
+        return messages(service, waitTimeSeconds, prePoll, postPoll) //
+                .stream() //
+                .map(m -> Sqs.getNextMessage(m, service)) //
+                .collect(Collectors
+                        .toList());
+    }
 
     private static Flowable<SqsMessage> createFlowableContinousLongPolling(Service service,
             Consumer<? super String> logger,
             Runnable prePoll,
-			Consumer<? super Optional<Throwable>> postPoll) {
+            Consumer<? super Optional<Throwable>> postPoll) {
         final ContinuousLongPollingSyncOnSubscribe c = new ContinuousLongPollingSyncOnSubscribe(service, logger, prePoll, postPoll);
         return Flowable.generate(c, c);
     }
@@ -292,7 +297,7 @@ public final class Sqs {
         private Consumer<? super Optional<Throwable>> postPoll;
 
         public ContinuousLongPollingSyncOnSubscribe(Service service, Consumer<? super String> logger, Runnable prePoll,
-        											Consumer<? super Optional<Throwable>> postPoll) {
+                                                    Consumer<? super Optional<Throwable>> postPoll) {
             this.service = service;
             this.logger = logger;
             this.prePoll = prePoll;
@@ -314,22 +319,22 @@ public final class Sqs {
             while (!next.isPresent()) {
                 while (q.isEmpty()) {
                     logger.accept("long polling for messages on queue=" + service.queueUrl);
+                    prePoll.run();
+                    List<Message> list;
                     try {
-                        prePoll.run();
-                    	final ReceiveMessageResult result = service.sqs.receiveMessage(request);
-                    	postPoll.accept(Optional.empty());
-                    	q.addAll(result.getMessages());
+                        list = service.sqs.receiveMessage(request).getMessages();
                     } catch(Throwable t) {
-                    	postPoll.accept(Optional.of(t));
-                    	throw t;
+                        postPoll.accept(Optional.of(t));
+                        throw t;
                     }
+                    q.addAll(list);
+                    postPoll.accept(Optional.empty());
                 }
                 final Message message = q.poll();
                 next = getNextMessage(message, service);
             }
             emitter.onNext(next.get());
         }
-
     }
 
     static Optional<SqsMessage> getNextMessage(Message message, Service service) {
