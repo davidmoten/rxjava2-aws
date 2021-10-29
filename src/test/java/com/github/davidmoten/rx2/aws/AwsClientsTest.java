@@ -6,7 +6,6 @@ import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.regions.Regions;
 import com.github.davidmoten.junit.Asserts;
-import com.github.davidmoten.rx2.aws.AwsClients;
 
 public class AwsClientsTest {
 

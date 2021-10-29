@@ -295,7 +295,6 @@ public final class SqsTest {
         Sqs.sendToQueueUsingS3(sqs, "queueUrl", s3, "bucket", new byte[] { 1, 2 });
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void ensureIfSendToSqsFailsThatS3ObjectIsDeleted() {
         final AmazonSQSClient sqs = Mockito.mock(AmazonSQSClient.class);
