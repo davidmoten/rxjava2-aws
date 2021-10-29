@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -244,32 +245,33 @@ public final class Sqs {
 
     private static Flowable<SqsMessage> get(int waitTimeSeconds, Service service, Consumer<? super String> logger, 
     										Runnable prePoll, Consumer<? super Optional<Throwable>> postPoll) {
-        try {
-    		prePoll.run();
-    		
-    		Flowable<SqsMessage> flowable = Flowable.just(service.sqs.receiveMessage(request(service.queueUrl, waitTimeSeconds)) //
-	                .getMessages() //
-	                .stream() //
-	                .map(m -> Sqs.getNextMessage(m, service)) //
-                .collect(Collectors.toList())) //
-                .concatWith(Flowable.defer(() -> Flowable.just(service.sqs.receiveMessage(request(service.queueUrl, 0)) //
-                        .getMessages() //
-                        .stream() //
-                        .map(m -> Sqs.getNextMessage(m, service)) //
-                        .collect(Collectors.toList()))) //
-                        .repeat())
-                .takeWhile(list -> !list.isEmpty()) //
-                .flatMapIterable(x -> x) //
-                .filter(opt -> opt.isPresent()) //
-                .map(opt -> opt.get());
-    		
-    		postPoll.accept(Optional.empty());
-    		
-    		return flowable;
-        } catch(Throwable t) {
-        	postPoll.accept(Optional.of(t));
-        	throw t;
-        }
+		Flowable<SqsMessage> flowable = Flowable.just(service.sqs.receiveMessage(request(service.queueUrl, waitTimeSeconds)) //
+                .getMessages() //
+                .stream() //
+                .map(m -> Sqs.getNextMessage(m, service)) //
+            .collect(Collectors.toList())) //
+            .concatWith(Flowable.defer(() -> {
+            	try {
+            		prePoll.run();
+            		ReceiveMessageResult messagesResult = service.sqs.receiveMessage(request(service.queueUrl, 0));
+            		postPoll.accept(Optional.empty());
+            		
+                	return Flowable.just(messagesResult.getMessages() //
+			                       .stream() //
+			                       .map(m -> Sqs.getNextMessage(m, service)) //
+			                       .collect(Collectors.toList()));
+            	} catch(Throwable t) {
+            		postPoll.accept(Optional.of(t));
+            		throw t;
+            	}
+            }) //
+            .repeat()) //
+            .takeWhile(list -> !list.isEmpty()) //
+            .flatMapIterable(x -> x) //
+            .filter(opt -> opt.isPresent()) //
+            .map(opt -> opt.get());
+		
+		return flowable;
 	}
 
     private static Flowable<SqsMessage> createFlowableContinousLongPolling(Service service,
