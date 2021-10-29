@@ -245,11 +245,13 @@ public final class Sqs {
 
     private static Flowable<SqsMessage> get(int waitTimeSeconds, Service service, Consumer<? super String> logger, 
     										Runnable prePoll, Consumer<? super Optional<Throwable>> postPoll) {
-		Flowable<SqsMessage> flowable = Flowable.just(service.sqs.receiveMessage(request(service.queueUrl, waitTimeSeconds)) //
-                .getMessages() //
-                .stream() //
-                .map(m -> Sqs.getNextMessage(m, service)) //
-            .collect(Collectors.toList())) //
+		return Flowable.fromCallable( //
+                () -> service.sqs.receiveMessage(request(service.queueUrl, waitTimeSeconds)) //
+                        .getMessages() //
+                        .stream() //
+                        .map(m -> Sqs.getNextMessage(m, service)) //
+                        .collect(Collectors
+                                .toList())) //
             .concatWith(Flowable.defer(() -> {
             	try {
             		prePoll.run();
@@ -269,8 +271,6 @@ public final class Sqs {
             .flatMapIterable(x -> x) //
             .filter(opt -> opt.isPresent()) //
             .map(opt -> opt.get());
-		
-		return flowable;
 	}
 
     private static Flowable<SqsMessage> createFlowableContinousLongPolling(Service service,
