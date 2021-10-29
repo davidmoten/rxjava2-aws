@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -252,13 +253,12 @@ public final class Sqs {
             .concatWith(Flowable.defer(() -> {
             	try {
             		prePoll.run();
-            		ReceiveMessageResult messagesResult = service.sqs.receiveMessage(request(service.queueUrl, 0));
+            		List<Message> list = service.sqs.receiveMessage(request(service.queueUrl, 0)).getMessages();
             		postPoll.accept(Optional.empty());
-            		
-                	return Flowable.just(messagesResult.getMessages() //
-			                       .stream() //
-			                       .map(m -> Sqs.getNextMessage(m, service)) //
-			                       .collect(Collectors.toList()));
+            		return Flowable.fromIterable(list) //
+            		        .map(m -> Sqs.getNextMessage(m, service)) //
+            		        .toList() //
+            		        .toFlowable();
             	} catch(Throwable t) {
             		postPoll.accept(Optional.of(t));
             		throw t;
