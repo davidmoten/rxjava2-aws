@@ -34,6 +34,8 @@ Sqs.queueName("my-queue")
    .sqsFactory(() -> AmazonSQSClientBuilder.standard().withRegion(region).build())
    // log polls
    .logger(System.out::println)
+   // perform action using the poll date
+   .lastPollDate(pollDate -> System.out::println)
    // get messages as observable
    .messages()
    // process the message
