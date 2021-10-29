@@ -34,6 +34,12 @@ Sqs.queueName("my-queue")
    .sqsFactory(() -> AmazonSQSClientBuilder.standard().withRegion(region).build())
    // log polls
    .logger(System.out::println)
+   // Action that occurs before SQS poll
+   .prePoll(() -> {/* Do something */})
+   // Action that occurs post SQS poll providing a Throwable if an Throwable event occurs
+   .postPoll((Optional<Throwable> t) -> {/* do something */})
+   // perform action using the poll date
+   .lastPollDate(pollDate -> System.out::println)
    // get messages as observable
    .messages()
    // process the message
