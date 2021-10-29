@@ -26,7 +26,7 @@
         <slf4j.version>1.7.12</slf4j.version>
 
         <aws.sdk.version>1.11.679</aws.sdk.version>
-        <checkstyle.version>3.0.0</checkstyle.version>
+        <checkstyle.version>3.1.2</checkstyle.version>
         <findbugs.version>2.5.4</findbugs.version>
         <javadoc.version>3.1.0</javadoc.version>
         <pmd.version>3.10.0</pmd.version>
