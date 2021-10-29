@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mock;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -53,9 +54,12 @@ public final class SqsTest {
                 list.add(msg);
             }
         };
+        List<String> events = new ArrayList<>();
         Sqs.queueName(queueName) //
                 .sqsFactory(() -> sqs) //
                 .logger(logger)
+                .prePoll(() -> events.add("prePoll")) //
+                .postPoll(e -> events.add("postPoll")) //
                 .messages() //
                 .map(m -> m.message()) //
                 .doOnError(Throwable::printStackTrace) //
@@ -70,6 +74,7 @@ public final class SqsTest {
         inorder.verify(sqs, Mockito.times(1)).shutdown();
         inorder.verifyNoMoreInteractions();
         assertEquals(Arrays.asList("long polling for messages on queue=queue"), list);
+        assertEquals(Arrays.asList("prePoll", "postPoll"), events);
     }
 
     @Test(timeout = 5000)
