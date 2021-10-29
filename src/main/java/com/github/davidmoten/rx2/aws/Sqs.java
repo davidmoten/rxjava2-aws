@@ -16,6 +16,7 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.amazonaws.services.s3.AmazonS3;
@@ -25,6 +26,7 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.github.davidmoten.guavamini.Preconditions;
+import com.github.davidmoten.guavamini.annotations.VisibleForTesting;
 import com.github.davidmoten.rx2.aws.SqsMessage.Service;
 
 import io.reactivex.Emitter;
@@ -257,11 +259,17 @@ public final class Sqs {
     
     private static List<Message> messages(Service service, int waitTimeSeconds, Runnable prePoll,
             Consumer<? super Optional<Throwable>> postPoll) {
+        return messages(() -> service.sqs.receiveMessage(request(service.queueUrl, waitTimeSeconds)) //
+                    .getMessages(), prePoll, postPoll);
+    }
+    
+    @VisibleForTesting
+    static List<Message> messages(Supplier<? extends List<Message>> supplier, Runnable prePoll,
+            Consumer<? super Optional<Throwable>> postPoll) {
         prePoll.run();
         List<Message> list;
         try {
-            list = service.sqs.receiveMessage(request(service.queueUrl, waitTimeSeconds)) //
-                    .getMessages();
+            list = supplier.get();
         } catch (Throwable t) {
             postPoll.accept(Optional.of(t));
             throw t;
@@ -373,7 +381,7 @@ public final class Sqs {
         return new ReceiveMessageRequest(queueUrl).withMaxNumberOfMessages(20).withWaitTimeSeconds(waitTimeSeconds);
     }
 
-    // Visible for testing
+    @VisibleForTesting
     static byte[] readAndClose(InputStream is) {
         Preconditions.checkNotNull(is);
         try {

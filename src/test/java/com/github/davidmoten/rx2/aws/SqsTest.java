@@ -15,6 +15,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
+import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
@@ -44,9 +45,10 @@ public final class SqsTest {
     public void testFirstCallToReceiveMessagesReturnsOneMessage() {
         final AmazonSQSClient sqs = Mockito.mock(AmazonSQSClient.class);
         final String queueName = "queue";
-        Mockito.when(sqs.getQueueUrl(Mockito.<GetQueueUrlRequest> any())).thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
-        Mockito.when(sqs.receiveMessage(Mockito.<ReceiveMessageRequest>any()))
-                .thenReturn(new ReceiveMessageResult().withMessages(new Message().withBody("body1")));
+        Mockito.when(sqs.getQueueUrl(Mockito.<GetQueueUrlRequest>any()))
+                .thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
+        Mockito.when(sqs.receiveMessage(Mockito.<ReceiveMessageRequest>any())).thenReturn(
+                new ReceiveMessageResult().withMessages(new Message().withBody("body1")));
         List<String> list = new CopyOnWriteArrayList<>();
         Consumer<String> logger = new Consumer<String>() {
             @Override
@@ -57,8 +59,7 @@ public final class SqsTest {
         List<String> events = new ArrayList<>();
         Sqs.queueName(queueName) //
                 .sqsFactory(() -> sqs) //
-                .logger(logger)
-                .prePoll(() -> events.add("prePoll")) //
+                .logger(logger).prePoll(() -> events.add("prePoll")) //
                 .postPoll(e -> events.add("postPoll")) //
                 .messages() //
                 .map(m -> m.message()) //
@@ -81,9 +82,10 @@ public final class SqsTest {
     public void testFirstCallToReceiveMessagesReturnsOneMessageAndHonoursBackpressure() {
         final AmazonSQSClient sqs = Mockito.mock(AmazonSQSClient.class);
         final String queueName = "queue";
-        Mockito.when(sqs.getQueueUrl(Mockito.<GetQueueUrlRequest> any())).thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
-        Mockito.when(sqs.receiveMessage(Mockito.<ReceiveMessageRequest>any()))
-                .thenReturn(new ReceiveMessageResult().withMessages(new Message().withBody("body1")));
+        Mockito.when(sqs.getQueueUrl(Mockito.<GetQueueUrlRequest>any()))
+                .thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
+        Mockito.when(sqs.receiveMessage(Mockito.<ReceiveMessageRequest>any())).thenReturn(
+                new ReceiveMessageResult().withMessages(new Message().withBody("body1")));
         Sqs.queueName(queueName) //
                 .sqsFactory(() -> sqs) //
                 .messages() //
@@ -105,8 +107,10 @@ public final class SqsTest {
     public void testFirstCallToReceiveMessagesReturnsNoMessagesThenSecondCallReturnsTwoMessages() {
         final AmazonSQSClient sqs = Mockito.mock(AmazonSQSClient.class);
         final String queueName = "queue";
-        Mockito.when(sqs.getQueueUrl(Mockito.<GetQueueUrlRequest> any())).thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
-        Mockito.when(sqs.receiveMessage(Mockito.<ReceiveMessageRequest>any())).thenReturn(new ReceiveMessageResult())
+        Mockito.when(sqs.getQueueUrl(Mockito.<GetQueueUrlRequest>any()))
+                .thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
+        Mockito.when(sqs.receiveMessage(Mockito.<ReceiveMessageRequest>any()))
+                .thenReturn(new ReceiveMessageResult())
                 .thenReturn(new ReceiveMessageResult().withMessages(new Message().withBody("body1"),
                         new Message().withBody("body2")));
         Sqs.queueName(queueName) //
@@ -127,15 +131,18 @@ public final class SqsTest {
     }
 
     @Test(timeout = 5000)
-    public void testFirstCallToReceiveMessagesReturnsOneViaS3() throws UnsupportedEncodingException {
+    public void testFirstCallToReceiveMessagesReturnsOneViaS3()
+            throws UnsupportedEncodingException {
         final AmazonSQSClient sqs = Mockito.mock(AmazonSQSClient.class);
         final AmazonS3Client s3 = Mockito.mock(AmazonS3Client.class);
         final String queueName = "queue";
         final String s3Id = "123";
-        Mockito.when(sqs.getQueueUrl(Mockito.<GetQueueUrlRequest> any())).thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
+        Mockito.when(sqs.getQueueUrl(Mockito.<GetQueueUrlRequest>any()))
+                .thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
         final String receiptHandle = "abc";
-        Mockito.when(sqs.receiveMessage(Mockito.<ReceiveMessageRequest>any())).thenReturn(
-                new ReceiveMessageResult().withMessages(new Message().withReceiptHandle(receiptHandle).withBody(s3Id)));
+        Mockito.when(sqs.receiveMessage(Mockito.<ReceiveMessageRequest>any()))
+                .thenReturn(new ReceiveMessageResult().withMessages(
+                        new Message().withReceiptHandle(receiptHandle).withBody(s3Id)));
         final String bucketName = "bucket";
         Mockito.when(s3.doesObjectExist(bucketName, s3Id)).thenAnswer(x -> true);
         final S3Object s3Object = mock(S3Object.class);
@@ -159,7 +166,7 @@ public final class SqsTest {
                 .assertComplete() //
                 .assertValues("body1");
         final InOrder inorder = Mockito.inOrder(sqs, s3, s3Object);
-        inorder.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(Mockito.<GetQueueUrlRequest> any());
+        inorder.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(Mockito.<GetQueueUrlRequest>any());
         inorder.verify(sqs, Mockito.times(1)).receiveMessage(Mockito.<ReceiveMessageRequest>any());
         inorder.verify(s3, Mockito.times(1)).doesObjectExist(bucketName, s3Id);
         inorder.verify(s3, Mockito.times(1)).getObject(bucketName, s3Id);
@@ -180,14 +187,15 @@ public final class SqsTest {
         final String queueName = "queue";
         final String s3Id = "123";
         final String s3Id2 = "124";
-        Mockito.when(sqs.getQueueUrl(Mockito.<GetQueueUrlRequest> any())).thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
+        Mockito.when(sqs.getQueueUrl(Mockito.<GetQueueUrlRequest>any()))
+                .thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
         final String receiptHandle = "abc";
         final String receiptHandle2 = "abc2";
         Mockito.when(sqs.receiveMessage(Mockito.<ReceiveMessageRequest>any()))
-                .thenReturn(new ReceiveMessageResult()
-                        .withMessages(new Message().withReceiptHandle(receiptHandle).withBody(s3Id)))
-                .thenReturn(new ReceiveMessageResult()
-                        .withMessages(new Message().withReceiptHandle(receiptHandle2).withBody(s3Id2)));
+                .thenReturn(new ReceiveMessageResult().withMessages(
+                        new Message().withReceiptHandle(receiptHandle).withBody(s3Id)))
+                .thenReturn(new ReceiveMessageResult().withMessages(
+                        new Message().withReceiptHandle(receiptHandle2).withBody(s3Id2)));
         final String bucketName = "bucket";
         Mockito.when(s3.doesObjectExist(bucketName, s3Id)).thenReturn(false);
         Mockito.when(s3.doesObjectExist(bucketName, s3Id2)).thenReturn(true);
@@ -212,7 +220,7 @@ public final class SqsTest {
                 .assertComplete() //
                 .assertValues("body2");
         final InOrder inorder = Mockito.inOrder(sqs, s3, s3Object);
-        inorder.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(Mockito.<GetQueueUrlRequest> any());
+        inorder.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(Mockito.<GetQueueUrlRequest>any());
         inorder.verify(sqs, Mockito.times(1)).receiveMessage(Mockito.<ReceiveMessageRequest>any());
         inorder.verify(s3, Mockito.times(1)).doesObjectExist(bucketName, s3Id);
         inorder.verify(sqs, Mockito.times(1)).deleteMessage(queueName, receiptHandle);
@@ -248,8 +256,8 @@ public final class SqsTest {
 
     @Test(expected = NullPointerException.class)
     public void testBucketNameAndS3FactoryMustBothBeSpecified() {
-        Sqs.queueName("queue").sqsFactory(() -> AmazonSQSClientBuilder.defaultClient()).bucketName(null)
-                .s3Factory(() -> AmazonS3ClientBuilder.defaultClient()).messages();
+        Sqs.queueName("queue").sqsFactory(() -> AmazonSQSClientBuilder.defaultClient())
+                .bucketName(null).s3Factory(() -> AmazonS3ClientBuilder.defaultClient()).messages();
     }
 
     @Test(timeout = 5000)
@@ -257,13 +265,17 @@ public final class SqsTest {
         final TestScheduler sched = new TestScheduler();
         final AmazonSQSClient sqs = Mockito.mock(AmazonSQSClient.class);
         final String queueName = "queue";
-        Mockito.when(sqs.getQueueUrl(Mockito.<GetQueueUrlRequest> any())).thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
+        Mockito.when(sqs.getQueueUrl(Mockito.<GetQueueUrlRequest>any()))
+                .thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
         Mockito.when(sqs.receiveMessage(Mockito.<ReceiveMessageRequest>any())) //
                 .thenReturn(new ReceiveMessageResult()) //
-                .thenReturn(new ReceiveMessageResult().withMessages(new Message().withBody("body1"))) //
-                .thenReturn(new ReceiveMessageResult().withMessages(new Message().withBody("body2"))) //
+                .thenReturn(
+                        new ReceiveMessageResult().withMessages(new Message().withBody("body1"))) //
+                .thenReturn(
+                        new ReceiveMessageResult().withMessages(new Message().withBody("body2"))) //
                 .thenReturn(new ReceiveMessageResult()) //
-                .thenReturn(new ReceiveMessageResult().withMessages(new Message().withBody("body3"))) //
+                .thenReturn(
+                        new ReceiveMessageResult().withMessages(new Message().withBody("body3"))) //
                 .thenReturn(new ReceiveMessageResult()) //
                 .thenReturn(new ReceiveMessageResult());
         final TestSubscriber<String> ts = Sqs.queueName(queueName) //
@@ -287,7 +299,12 @@ public final class SqsTest {
                 .assertNotTerminated() //
                 .cancel();
         final InOrder inorder = Mockito.inOrder(sqs);
-        inorder.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(Mockito.<GetQueueUrlRequest> any());        // TODO why times(1), should be times(6)?
+        inorder.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(Mockito.<GetQueueUrlRequest>any()); // TODO
+                                                                                                   // why
+                                                                                                   // times(1),
+                                                                                                   // should
+                                                                                                   // be
+                                                                                                   // times(6)?
         inorder.verify(sqs, Mockito.times(7)).receiveMessage(Mockito.<ReceiveMessageRequest>any());
         inorder.verify(sqs, Mockito.times(1)).shutdown();
         inorder.verifyNoMoreInteractions();
@@ -297,62 +314,88 @@ public final class SqsTest {
     public void testSendMessage() {
         final AmazonSQSClient sqs = Mockito.mock(AmazonSQSClient.class);
         final AmazonS3Client s3 = Mockito.mock(AmazonS3Client.class);
-        Sqs.sendToQueueUsingS3(sqs, "queueUrl", s3, "bucket", new byte[] { 1, 2 });
+        Sqs.sendToQueueUsingS3(sqs, "queueUrl", s3, "bucket", new byte[] {1, 2});
     }
 
     @Test
     public void ensureIfSendToSqsFailsThatS3ObjectIsDeleted() {
         final AmazonSQSClient sqs = Mockito.mock(AmazonSQSClient.class);
         final AmazonS3Client s3 = Mockito.mock(AmazonS3Client.class);
-        Mockito.when(sqs.sendMessage(Mockito.anyString(), Mockito.anyString())).thenThrow(RuntimeException.class);
+        Mockito.when(sqs.sendMessage(Mockito.anyString(), Mockito.anyString()))
+                .thenThrow(RuntimeException.class);
         try {
-            Sqs.sendToQueueUsingS3(sqs, "queueUrl", s3, "bucket", new byte[] { 1, 2 });
+            Sqs.sendToQueueUsingS3(sqs, "queueUrl", s3, "bucket", new byte[] {1, 2});
         } catch (final RuntimeException e) {
             assertTrue(e instanceof CompositeException);
             final InOrder inorder = Mockito.inOrder(sqs, s3);
-            inorder.verify(s3, Mockito.times(1)).putObject(Mockito.anyString(), Mockito.anyString(), Mockito.any(),
-                    Mockito.any());
-            inorder.verify(sqs, Mockito.times(1)).sendMessage(Mockito.anyString(), Mockito.anyString());
-            inorder.verify(s3, Mockito.times(1)).deleteObject(Mockito.anyString(), Mockito.anyString());
+            inorder.verify(s3, Mockito.times(1)).putObject(Mockito.anyString(), Mockito.anyString(),
+                    Mockito.any(), Mockito.any());
+            inorder.verify(sqs, Mockito.times(1)).sendMessage(Mockito.anyString(),
+                    Mockito.anyString());
+            inorder.verify(s3, Mockito.times(1)).deleteObject(Mockito.anyString(),
+                    Mockito.anyString());
             inorder.verifyNoMoreInteractions();
+        }
+    }
+
+    @Test
+    public void testCanUseNewAwsBuildersInFactoryMethods() {
+        Sqs.queueName("queue").sqsFactory(
+                () -> AmazonSQSClientBuilder.standard().withRegion("ap-southeast-2").build());
+    }
+
+    @Test
+    public void testPollEvents() {
+        List<Message> list = new ArrayList<>();
+        List<String> events = new ArrayList<>();
+        List<Message> result = Sqs.messages(() -> list, () -> events.add("prePoll"), e -> events.add("postPoll"));
+        assertTrue(result == list);
+        assertEquals(Arrays.asList("prePoll", "postPoll"), events);
+    }
+    
+    @Test
+    public void testPollEventsIfPrePollThrows() {
+        List<Message> list = new ArrayList<>();
+        List<String> events = new ArrayList<>();
+        try {
+            Sqs.messages(() -> list, () -> {
+                throw new RuntimeException();
+            }, e -> events.add("postPoll"));
+            Assert.fail();
+        } catch (RuntimeException e) {
+            // expected
+            assertTrue(events.isEmpty());
         }
     }
     
     @Test
-    public void testCanUseNewAwsBuildersInFactoryMethods() {
-        Sqs.queueName("queue").sqsFactory(() -> AmazonSQSClientBuilder.standard().withRegion("ap-southeast-2").build());
+    public void testPollEventsIfSupplierThrows() {
+        List<String> events = new ArrayList<>();
+        try {
+            Sqs.messages(() -> {
+                throw new RuntimeException();
+            }, () -> events.add("prePoll"), //
+                    e -> events.add(e.get().getClass().getSimpleName()));
+            Assert.fail();
+        } catch (RuntimeException e) {
+            // expected
+            assertEquals(Arrays.asList("prePoll", "RuntimeException"), events);
+        }
     }
-    // @SuppressWarnings("unused")
-    // public static void main(String[] args) {
-    // ClientConfiguration cc;
-    // if (false)
-    // cc = new
-    // ClientConfiguration().withProxyHost("proxy.amsa.gov.au").withProxyPort(8080);
-    // else
-    // cc = new ClientConfiguration();
-    // AWSCredentialsProvider credentials = new
-    // SystemPropertiesCredentialsProvider();
-    // Func0<AmazonSQSClient> sqs = () -> new AmazonSQSClient(credentials, cc)
-    // .withRegion(Region.getRegion(Regions.AP_SOUTHEAST_2));
-    // Func0<AmazonS3Client> s3 = () -> new AmazonS3Client(credentials, cc)
-    // .withRegion(Region.getRegion(Regions.AP_SOUTHEAST_2));
-    // String bucketName = "cts-gateway-requests";
-    // String queueName = bucketName;
-    // Sqs.queueName(queueName) //
-    // .sqsFactory(sqs) //
-    // .bucketName(bucketName) //
-    // .s3Factory(s3) //
-    // .messages() //
-    // .subscribeOn(Schedulers.io()) //
-    // .doOnNext(System.out::println) //
-    // .doOnNext(SqsMessage::deleteMessage) //
-    // .doOnError(e -> {
-    // e.printStackTrace();
-    // System.out.println(Thread.currentThread().getName());
-    // }) //
-    // .retryWhen(RetryWhen.delay(5, TimeUnit.SECONDS).build(), Schedulers.io())
-    // //
-    // .toBlocking().subscribe();
-    // }
-
+    
+    @Test
+    public void testPollEventsIfPostPollThrows() {
+        List<String> events = new ArrayList<>();
+        try {
+            Sqs.messages(() -> new ArrayList<>(), //
+                    () -> events.add("prePoll"), //
+                    e -> {
+                        throw new IllegalArgumentException();
+                    });
+            Assert.fail();
+        } catch (IllegalArgumentException e) {
+            // expected
+            assertEquals(Arrays.asList("prePoll"), events);
+        }
+    }
 }
