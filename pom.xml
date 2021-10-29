@@ -9,7 +9,7 @@
         <version>0.1</version>
     </parent>
     <artifactId>rxjava2-aws</artifactId>
-    <version>0.1.29-SNAPSHOT</version>
+    <version>0.1.28-SNAPSHOT</version>
     <name>${project.artifactId}</name>
     <description>RxJava 2 utilities for AWS</description>
     <packaging>jar</packaging>
