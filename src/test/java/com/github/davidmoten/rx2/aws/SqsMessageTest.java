@@ -13,8 +13,6 @@ import org.mockito.Mockito;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.DeleteMessageResult;
-import com.github.davidmoten.rx2.aws.SqsMessage;
-import com.github.davidmoten.rx2.aws.Util;
 import com.github.davidmoten.rx2.aws.SqsMessage.Client;
 
 public class SqsMessageTest {
