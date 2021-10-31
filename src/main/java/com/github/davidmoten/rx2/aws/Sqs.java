@@ -327,16 +327,11 @@ public final class Sqs {
             while (!next.isPresent()) {
                 while (q.isEmpty()) {
                     logger.accept("long polling for messages on queue=" + service.queueUrl);
-                    prePoll.run();
-                    List<Message> list;
-                    try {
-                        list = service.sqs.receiveMessage(request).getMessages();
-                    } catch(Throwable t) {
-                        postPoll.accept(Optional.of(t));
-                        throw t;
-                    }
+                    List<Message> list = messages( //
+                            () -> service.sqs.receiveMessage(request).getMessages(), //
+                            prePoll, // 
+                            postPoll);
                     q.addAll(list);
-                    postPoll.accept(Optional.empty());
                 }
                 final Message message = q.poll();
                 next = getNextMessage(message, service);
