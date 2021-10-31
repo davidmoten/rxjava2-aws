@@ -214,17 +214,22 @@ public final class Sqs {
     private static Flowable<SqsMessage> createFlowableWithSqs(AmazonSQS sqs, Optional<Callable<AmazonS3>> s3Factory,
             Callable<AmazonSQS> sqsFactory, SqsQueue queue, Optional<String> bucketName,
             Optional<Flowable<Integer>> waitTimesSeconds, Consumer<? super String> logger,
-            Runnable prePoll,    Consumer<? super Optional<Throwable>> postPoll) {
+            Runnable prePoll, Consumer<? super Optional<Throwable>> postPoll) {
 
-        return Flowable.using(() -> s3Factory.map(x -> {
-            try {
-                return x.call();
-            } catch (final Exception e) {
-                throw new RuntimeException(e);
-            }
-        }), //
+        return Flowable.using(() -> s3Factory.map(x -> uncheckedCall(x)), //
                 s3 -> createFlowableWithS3(sqs, s3Factory, sqsFactory, queue, bucketName, s3, waitTimesSeconds, logger, prePoll, postPoll),
                 s3 -> s3.ifPresent(Util::shutdown));
+    }
+    
+    @VisibleForTesting
+    static <T> T uncheckedCall(Callable<T> callable) {
+        try {
+            return callable.call();
+        } catch (RuntimeException|Error e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static Flowable<SqsMessage> createFlowableWithS3(AmazonSQS sqs, Optional<Callable<AmazonS3>> s3Factory,
