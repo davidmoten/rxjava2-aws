@@ -75,12 +75,7 @@ public final class Sqs {
         Preconditions.checkNotNull(queueUrl);
         Preconditions.checkNotNull(bucketName);
         Preconditions.checkNotNull(message);
-        String s3Id;
-        try {
-            s3Id = s3IdFactory.call();
-        } catch (final Exception e1) {
-            throw new RuntimeException(e1);
-        }
+        String s3Id = uncheckedCall(s3IdFactory);
         final ObjectMetadata metadata = new ObjectMetadata();
         metadata.setContentLength(message.length);
         for (final Entry<String, String> header : headers.entrySet()) {
