@@ -5,14 +5,13 @@ import java.util.Optional;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.GetQueueUrlRequest;
 import com.github.davidmoten.guavamini.Preconditions;
+import com.github.davidmoten.guavamini.annotations.VisibleForTesting;
 
 final class SqsQueue {
 
-    final Optional<String> queueUrl;
+    private final Optional<String> queueUrl;
 
-    final Optional<String> queueName;
-
-    final Optional<String> ownerAccountId;
+    private final Optional<GetQueueUrlRequest> request;
 
     static SqsQueue fromQueueName(String queueName) {
         return new SqsQueue(Optional.of(queueName), Optional.empty(), Optional.empty());
@@ -26,25 +25,31 @@ final class SqsQueue {
         return new SqsQueue(Optional.empty(), Optional.empty(), Optional.of(queueUrl));
     }
 
-    private SqsQueue(Optional<String> queueName, Optional<String> ownerAccountId, Optional<String> queueUrl) {
+    @VisibleForTesting
+    SqsQueue(Optional<String> queueName, Optional<String> ownerAccountId,
+            Optional<String> queueUrl) {
         Preconditions.checkNotNull(queueName);
         Preconditions.checkNotNull(queueUrl);
         Preconditions.checkNotNull(ownerAccountId);
-        Preconditions.checkArgument(!queueUrl.isPresent() || !queueName.isPresent() && !ownerAccountId.isPresent());
         Preconditions.checkArgument(queueUrl.isPresent() || queueName.isPresent());
-        this.queueName = queueName;
+        Preconditions.checkArgument(!queueUrl.isPresent() || !queueName.isPresent());
+        Preconditions.checkArgument(queueName.isPresent() || !ownerAccountId.isPresent());
         this.queueUrl = queueUrl;
-        this.ownerAccountId = ownerAccountId;
+        this.request = queueUrl.isPresent() ? Optional.empty()
+                : Optional.of(createRequest(queueName.get(), ownerAccountId));
+    }
+
+    private static GetQueueUrlRequest createRequest(String queueName,
+            Optional<String> ownerAccountId) {
+        Preconditions.checkNotNull(queueName);
+        GetQueueUrlRequest r = new GetQueueUrlRequest(queueName);
+        if (ownerAccountId.isPresent()) {
+            r = r.withQueueOwnerAWSAccountId(ownerAccountId.get());
+        }
+        return r;
     }
 
     public String getQueueUrl(AmazonSQS sqs) {
-        return queueUrl.orElseGet(() -> {
-            GetQueueUrlRequest req = new GetQueueUrlRequest(queueName.get());
-            if (ownerAccountId.isPresent()) {
-                req = req.withQueueOwnerAWSAccountId(ownerAccountId.get());
-            }
-            return sqs.getQueueUrl(req).getQueueUrl();
-        });
+        return queueUrl.orElseGet(() -> sqs.getQueueUrl(request.get()).getQueueUrl());
     }
-
 }

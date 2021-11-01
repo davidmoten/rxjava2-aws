@@ -34,6 +34,7 @@ import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import com.amazonaws.util.StringInputStream;
 import com.github.davidmoten.junit.Asserts;
+import com.github.davidmoten.rx2.aws.Sqs.SqsBuilder;
 
 import io.reactivex.exceptions.CompositeException;
 import io.reactivex.schedulers.TestScheduler;
@@ -43,8 +44,20 @@ public final class SqsTest {
 
     @Test(timeout = 5000)
     public void testFirstCallToReceiveMessagesReturnsOneMessage() {
-        final AmazonSQSClient sqs = Mockito.mock(AmazonSQSClient.class);
         final String queueName = "queue";
+        SqsBuilder builder = Sqs.queueName(queueName);
+        checkFirstCall(queueName, builder);
+    }
+    
+    @Test(timeout = 5000)
+    public void testFirstCallToReceiveMessagesReturnsOneMessageUsesAccountId() {
+        final String queueName = "queue";
+        SqsBuilder builder = Sqs.ownerAccountId("abc123").queueName(queueName);
+        checkFirstCall(queueName, builder);
+    }
+
+    private void checkFirstCall(final String queueName, SqsBuilder builder) {
+        final AmazonSQSClient sqs = Mockito.mock(AmazonSQSClient.class);
         Mockito.when(sqs.getQueueUrl(Mockito.<GetQueueUrlRequest>any()))
                 .thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
         Mockito.when(sqs.receiveMessage(Mockito.<ReceiveMessageRequest>any())).thenReturn(
@@ -57,8 +70,7 @@ public final class SqsTest {
             }
         };
         List<String> events = new ArrayList<>();
-        Sqs.queueName(queueName) //
-                .sqsFactory(() -> sqs) //
+        builder.sqsFactory(() -> sqs) //
                 .logger(logger).prePoll(() -> events.add("prePoll")) //
                 .postPoll(e -> events.add("postPoll")) //
                 .messages() //
@@ -75,6 +87,42 @@ public final class SqsTest {
         inorder.verify(sqs, Mockito.times(1)).shutdown();
         inorder.verifyNoMoreInteractions();
         assertEquals(Arrays.asList("long polling for messages on queue=queue"), list);
+        assertEquals(Arrays.asList("prePoll", "postPoll"), events);
+    }
+    
+    @Test
+    public void testFirstCallWithQueueUrl() {
+        final AmazonSQSClient sqs = Mockito.mock(AmazonSQSClient.class);
+        Mockito.when(sqs //
+                .receiveMessage(Mockito.<ReceiveMessageRequest>any())) //
+                .thenReturn(
+                        new ReceiveMessageResult().withMessages(new Message().withBody("body1")));
+        List<String> list = new CopyOnWriteArrayList<>();
+        Consumer<String> logger = new Consumer<String>() {
+            @Override
+            public void accept(String msg) {
+                list.add(msg);
+            }
+        };
+        List<String> events = new ArrayList<>();
+        Sqs.queueUrl("https://myqueue") //
+                .sqsFactory(() -> sqs) //
+                .logger(logger) //
+                .prePoll(() -> events.add("prePoll")) //
+                .postPoll(e -> events.add("postPoll")) //
+                .messages() //
+                .map(m -> m.message()) //
+                .doOnError(Throwable::printStackTrace) //
+                .take(1) //
+                .test() //
+                .awaitDone(10, TimeUnit.SECONDS) //
+                .assertComplete() //
+                .assertValue("body1");
+        final InOrder inorder = Mockito.inOrder(sqs);
+        inorder.verify(sqs, Mockito.times(1)).receiveMessage(Mockito.<ReceiveMessageRequest>any());
+        inorder.verify(sqs, Mockito.times(1)).shutdown();
+        inorder.verifyNoMoreInteractions();
+        assertEquals(Arrays.asList("long polling for messages on queue=https://myqueue"), list);
         assertEquals(Arrays.asList("prePoll", "postPoll"), events);
     }
 
