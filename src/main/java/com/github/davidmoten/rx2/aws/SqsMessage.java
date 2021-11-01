@@ -87,7 +87,7 @@ public final class SqsMessage {
                 + service.queueUrl + "]";
     }
 
-    public static enum Client {
+    public enum Client {
         FROM_SOURCE, FROM_FACTORY;
     }
 

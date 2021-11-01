@@ -119,9 +119,9 @@ public final class Sqs {
         private Optional<Callable<AmazonS3>> s3 = Optional.empty();
         private Optional<String> bucketName = Optional.empty();
         private Optional<Flowable<Integer>> waitTimesSeconds = Optional.empty();
-        private Consumer<? super String> logger = x -> {};
-        private Runnable prePoll = () -> {};
-        private Consumer<? super Optional<Throwable>> postPoll = x -> {};
+        private Consumer<? super String> logger = x -> { };
+        private Runnable prePoll = () -> { };
+        private Consumer<? super Optional<Throwable>> postPoll = x -> { };
 
         SqsBuilder(SqsQueue queue) {
             Preconditions.checkNotNull(queue);
@@ -145,7 +145,7 @@ public final class Sqs {
         }
 
         public SqsBuilder interval(int interval, TimeUnit unit, Scheduler scheduler) {
-            return waitTimes( //
+            return waitTimes(
                     Flowable.just(0) //
                             .concatWith(Flowable.interval(interval, unit, scheduler).map(x -> 0)),
                     TimeUnit.SECONDS);
@@ -203,7 +203,8 @@ public final class Sqs {
         Preconditions.checkNotNull(prePoll);
         Preconditions.checkNotNull(postPoll);
         return Flowable.using(sqsFactory,
-                sqs -> createFlowableWithSqs(sqs, s3Factory, sqsFactory, queue, bucketName, waitTimesSeconds, logger, prePoll, postPoll),
+                sqs -> createFlowableWithSqs(sqs, s3Factory, sqsFactory, queue, bucketName,
+                        waitTimesSeconds, logger, prePoll, postPoll),
                 sqs -> sqs.shutdown());
     }
 
@@ -213,7 +214,8 @@ public final class Sqs {
             Runnable prePoll, Consumer<? super Optional<Throwable>> postPoll) {
 
         return Flowable.using(() -> s3Factory.map(x -> uncheckedCall(x)), //
-                s3 -> createFlowableWithS3(sqs, s3Factory, sqsFactory, queue, bucketName, s3, waitTimesSeconds, logger, prePoll, postPoll),
+                s3 -> createFlowableWithS3(sqs, s3Factory, sqsFactory, queue, bucketName, s3,
+                        waitTimesSeconds, logger, prePoll, postPoll),
                 s3 -> s3.ifPresent(Util::shutdown));
     }
     
@@ -238,7 +240,7 @@ public final class Sqs {
             Consumer<? super String> logger, Runnable prePoll,
             Consumer<? super Optional<Throwable>> postPoll) {
         return Flowable.fromCallable(() -> sqsMessages(service, waitTimeSeconds, prePoll, postPoll)) //
-                .concatWith( //
+                .concatWith(//
                         Flowable.fromCallable(() -> sqsMessages(service, 0, prePoll, postPoll)) //
                                 .repeat()) //
                 .takeWhile(x -> !x.isEmpty()) //
@@ -268,19 +270,20 @@ public final class Sqs {
         return list;
     }
     
-    private static List<Optional<SqsMessage>> sqsMessages(Service service, int waitTimeSeconds,Runnable prePoll, Consumer<? super Optional<Throwable>> postPoll) {
+    private static List<Optional<SqsMessage>> sqsMessages(Service service, int waitTimeSeconds,
+            Runnable prePoll, Consumer<? super Optional<Throwable>> postPoll) {
         return messages(service, waitTimeSeconds, prePoll, postPoll) //
                 .stream() //
                 .map(m -> Sqs.getNextMessage(m, service)) //
-                .collect(Collectors
-                        .toList());
+                .collect(Collectors.toList());
     }
 
     private static Flowable<SqsMessage> createFlowableContinousLongPolling(Service service,
             Consumer<? super String> logger,
             Runnable prePoll,
             Consumer<? super Optional<Throwable>> postPoll) {
-        final ContinuousLongPollingSyncOnSubscribe c = new ContinuousLongPollingSyncOnSubscribe(service, logger, prePoll, postPoll);
+        final ContinuousLongPollingSyncOnSubscribe c = new ContinuousLongPollingSyncOnSubscribe(
+                service, logger, prePoll, postPoll);
         return Flowable.generate(c, c);
     }
 
@@ -294,7 +297,7 @@ public final class Sqs {
         private Runnable prePoll;
         private Consumer<? super Optional<Throwable>> postPoll;
 
-        public ContinuousLongPollingSyncOnSubscribe(Service service, Consumer<? super String> logger, Runnable prePoll,
+        ContinuousLongPollingSyncOnSubscribe(Service service, Consumer<? super String> logger, Runnable prePoll,
                                                     Consumer<? super Optional<Throwable>> postPoll) {
             this.service = service;
             this.logger = logger;
@@ -317,7 +320,7 @@ public final class Sqs {
             while (!next.isPresent()) {
                 while (q.isEmpty()) {
                     logger.accept("long polling for messages on queue=" + service.queueUrl);
-                    List<Message> list = messages( //
+                    List<Message> list = messages(//
                             () -> service.sqs.receiveMessage(request).getMessages(), //
                             prePoll, // 
                             postPoll);
@@ -356,7 +359,7 @@ public final class Sqs {
 
         final Queue<Message> queue;
 
-        public State(Queue<Message> queue) {
+        State(Queue<Message> queue) {
             this.queue = queue;
         }
 

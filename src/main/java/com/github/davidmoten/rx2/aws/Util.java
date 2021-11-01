@@ -31,7 +31,7 @@ final class Util {
     static <T> T uncheckedCall(Callable<T> callable) {
         try {
             return callable.call();
-        } catch (RuntimeException|Error e) {
+        } catch (RuntimeException | Error e) {
             throw e;
         } catch (Exception e) {
             throw new RuntimeException(e);
