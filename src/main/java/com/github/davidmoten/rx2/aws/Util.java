@@ -15,17 +15,17 @@ final class Util {
     static void shutdown(AmazonS3 client) {
         try {
             client.shutdown();
-        } catch (final RuntimeException e) {
-            // ignore
-        }
+        } catch (RuntimeException e) { // NOPMD
+            // ignore 
+        } 
     }
 
     static void shutdown(AmazonSQS client) {
         try {
             client.shutdown();
-        } catch (final RuntimeException e) {
-            // ignore
-        }
+        } catch (RuntimeException e) { // NOPMD
+            // ignore 
+        } 
     }
     
     static <T> T uncheckedCall(Callable<T> callable) {

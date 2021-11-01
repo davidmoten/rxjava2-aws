@@ -239,7 +239,10 @@ public final class Sqs {
     private static Flowable<SqsMessage> get(int waitTimeSeconds, Service service,
             Consumer<? super String> logger, Runnable prePoll,
             Consumer<? super Optional<Throwable>> postPoll) {
-        return Flowable.fromCallable(() -> sqsMessages(service, waitTimeSeconds, prePoll, postPoll)) //
+        return Flowable.fromCallable(() -> {
+            logger.accept("polling for messages");
+            return sqsMessages(service, waitTimeSeconds, prePoll, postPoll);
+        }) //
                 .concatWith(//
                         Flowable.fromCallable(() -> sqsMessages(service, 0, prePoll, postPoll)) //
                                 .repeat()) //
