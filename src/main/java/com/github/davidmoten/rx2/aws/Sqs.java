@@ -78,9 +78,9 @@ public final class Sqs {
         String s3Id = uncheckedCall(s3IdFactory);
         final ObjectMetadata metadata = new ObjectMetadata();
         metadata.setContentLength(message.length);
-        for (final Entry<String, String> header : headers.entrySet()) {
-            metadata.setHeader(header.getKey(), header.getValue());
-        }
+        headers //
+                .entrySet() //
+                .forEach(h -> metadata.setHeader(h.getKey(), h.getValue()));
         s3.putObject(bucketName, s3Id, new ByteArrayInputStream(message), metadata);
         try {
             sqs.sendMessage(queueUrl, s3Id);
