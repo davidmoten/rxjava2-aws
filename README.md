@@ -13,6 +13,7 @@ Status: *released to Maven Central*
 * Full backpressure support
 * Supports low latency delivery (using long-polling which blocks a thread)
 * Supports higher latency delivery via scheduled polling (reduced thread blocking)
+* 100% unit test coverage
 
 ## Getting started
 Add the rxjava2-aws dependency to your pom.xml:
