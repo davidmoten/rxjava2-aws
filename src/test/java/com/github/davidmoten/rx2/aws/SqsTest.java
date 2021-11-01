@@ -10,7 +10,9 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -144,6 +146,30 @@ public final class SqsTest {
                 .assertValue("body1")//
                 .assertNotComplete() //
                 .cancel();
+        final InOrder inorder = Mockito.inOrder(sqs);
+        inorder.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(Mockito.<GetQueueUrlRequest>any());
+        inorder.verify(sqs, Mockito.times(1)).receiveMessage(Mockito.<ReceiveMessageRequest>any());
+        inorder.verify(sqs, Mockito.times(1)).shutdown();
+        inorder.verifyNoMoreInteractions();
+    }
+    
+    @Test(timeout = 5000)
+    public void testFirstCallToReceiveMessagesReturnsOneMessageUsingIoScheduler() {
+        final AmazonSQSClient sqs = Mockito.mock(AmazonSQSClient.class);
+        final String queueName = "queue";
+        Mockito.when(sqs.getQueueUrl(Mockito.<GetQueueUrlRequest>any()))
+                .thenAnswer(x -> new GetQueueUrlResult().withQueueUrl(queueName));
+        Mockito.when(sqs.receiveMessage(Mockito.<ReceiveMessageRequest>any())).thenReturn(
+                new ReceiveMessageResult().withMessages(new Message().withBody("body1")));
+        String msg = 
+        Sqs.queueName(queueName) //
+                .sqsFactory(() -> sqs) //
+                .interval(1, TimeUnit.SECONDS) //
+                .messages() //
+                .map(m -> m.message()) //
+                .take(1) //
+                .blockingFirst();
+        assertEquals("body1", msg);
         final InOrder inorder = Mockito.inOrder(sqs);
         inorder.verify(sqs, Mockito.atLeastOnce()).getQueueUrl(Mockito.<GetQueueUrlRequest>any());
         inorder.verify(sqs, Mockito.times(1)).receiveMessage(Mockito.<ReceiveMessageRequest>any());
@@ -365,6 +391,15 @@ public final class SqsTest {
         Sqs.sendToQueueUsingS3(sqs, "queueUrl", s3, "bucket", new byte[] {1, 2});
     }
 
+    @Test
+    public void testSendMessageWithHeaders() {
+        final AmazonSQSClient sqs = Mockito.mock(AmazonSQSClient.class);
+        final AmazonS3Client s3 = Mockito.mock(AmazonS3Client.class);
+        Map<String, String> headers = new HashMap<String, String>();
+        headers.put("Content-Type", "text/plain");
+        Sqs.sendToQueueUsingS3(sqs, "queueUrl", s3, "bucket", headers, new byte[] {1, 2});
+    }
+    
     @Test
     public void ensureIfSendToSqsFailsThatS3ObjectIsDeleted() {
         final AmazonSQSClient sqs = Mockito.mock(AmazonSQSClient.class);

@@ -4,7 +4,6 @@ import java.util.concurrent.Callable;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.sqs.AmazonSQS;
-import com.github.davidmoten.guavamini.annotations.VisibleForTesting;
 
 final class Util {
 
