@@ -1,5 +1,7 @@
 package com.github.davidmoten.rx2.aws;
 
+import static com.github.davidmoten.rx2.aws.Util.uncheckedCall;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -9,7 +11,6 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.UUID;
@@ -216,17 +217,6 @@ public final class Sqs {
                 s3 -> s3.ifPresent(Util::shutdown));
     }
     
-    @VisibleForTesting
-    static <T> T uncheckedCall(Callable<T> callable) {
-        try {
-            return callable.call();
-        } catch (RuntimeException|Error e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     private static Flowable<SqsMessage> createFlowableWithS3(AmazonSQS sqs, Optional<Callable<AmazonS3>> s3Factory,
             Callable<AmazonSQS> sqsFactory, SqsQueue queue, Optional<String> bucketName, Optional<AmazonS3> s3,
             Optional<Flowable<Integer>> waitTimesSeconds, Consumer<? super String> logger, Runnable prePoll,

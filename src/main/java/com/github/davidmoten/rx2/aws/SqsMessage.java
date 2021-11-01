@@ -62,19 +62,8 @@ public final class SqsMessage {
     }
 
     private void deleteMessageUsingFactory(Optional<Callable<AmazonS3>> s3Factory, Callable<AmazonSQS> sqsFactory) {
-        final Optional<AmazonS3> s3 = s3Factory.map(x -> {
-            try {
-                return x.call();
-            } catch (final Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
-        AmazonSQS sqs;
-        try {
-            sqs = sqsFactory.call();
-        } catch (final Exception e) {
-            throw new RuntimeException(e);
-        }
+        final Optional<AmazonS3> s3 = s3Factory.map(Util::uncheckedCall);
+        AmazonSQS sqs = Util.uncheckedCall(sqsFactory);
         try {
             deleteMessage(s3, sqs);
         } finally {

@@ -446,45 +446,4 @@ public final class SqsTest {
             assertEquals(Arrays.asList("prePoll"), events);
         }
     }
-    
-    @Test
-    public void testUncheckedCall() {
-        assertEquals(1, (int) Sqs.uncheckedCall(() -> 1));   
-    }
-    
-    @Test
-    public void testUncheckedCallThrowsRuntimeException() {
-        try {
-            Sqs.uncheckedCall(() -> {
-                throw new IllegalArgumentException("boo");
-            });
-            Assert.fail();
-        } catch (RuntimeException e) {
-            assertEquals("boo", e.getMessage());
-        }
-    }
-    
-    @Test
-    public void testUncheckedCallThrowsError() {
-        try {
-            Sqs.uncheckedCall(() -> {
-                throw new Error("boo");
-            });
-            Assert.fail();
-        } catch (Error e) {
-            assertEquals("boo", e.getMessage());
-        }
-    }
-    
-    @Test
-    public void testUncheckedCallThrowsCheckedException() {
-        try {
-            Sqs.uncheckedCall(() -> {
-                throw new Exception("boo");
-            });
-            Assert.fail();
-        } catch (RuntimeException e) {
-            assertEquals("boo", e.getCause().getMessage());
-        }
-    }
 }

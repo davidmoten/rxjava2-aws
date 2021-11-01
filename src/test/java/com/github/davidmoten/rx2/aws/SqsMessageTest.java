@@ -27,6 +27,8 @@ public class SqsMessageTest {
         SqsMessage m = createMessage(sqs);
         assertEquals(1000L, m.lastModifiedTime());
         assertTrue(m.toString().contains("123"));
+        assertEquals("r", m.messageReceiptHandle());
+        assertEquals("123", m.s3Id().get());
     }
 
     private static SqsMessage createMessage(AmazonSQSClient sqs) {

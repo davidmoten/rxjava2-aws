@@ -1,7 +1,10 @@
 package com.github.davidmoten.rx2.aws;
 
+import java.util.concurrent.Callable;
+
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.sqs.AmazonSQS;
+import com.github.davidmoten.guavamini.annotations.VisibleForTesting;
 
 final class Util {
 
@@ -23,6 +26,16 @@ final class Util {
             client.shutdown();
         } catch (final RuntimeException e) {
             // ignore
+        }
+    }
+    
+    static <T> T uncheckedCall(Callable<T> callable) {
+        try {
+            return callable.call();
+        } catch (RuntimeException|Error e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
