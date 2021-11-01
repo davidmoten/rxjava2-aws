@@ -4,7 +4,9 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.mockito.Mockito;
 
+import com.amazonaws.services.s3.AmazonS3Client;
 import com.github.davidmoten.junit.Asserts;
 
 public class UtilTest {
@@ -55,4 +57,12 @@ public class UtilTest {
         }
     }
     
+    @Test
+    public void testShutdownS3() {
+        AmazonS3Client s3 = Mockito.mock(AmazonS3Client.class);
+        Mockito.doThrow(new RuntimeException()).when(s3).shutdown();
+        // should not throw
+        Util.shutdown(s3);   
+        Mockito.verify(s3, Mockito.times(1)).shutdown();
+    }
 }
