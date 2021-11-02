@@ -15,6 +15,8 @@ Status: *released to Maven Central*
 * Supports higher latency delivery via scheduled polling (reduced thread blocking)
 * 100% unit test coverage
 
+Maven [reports](https://davidmoten.github.io/rxjava2-aws/index.html) including [javadocs](https://davidmoten.github.io/rxjava2-aws/apidocs/index.html)
+
 ## Getting started
 Add the rxjava2-aws dependency to your pom.xml:
 
