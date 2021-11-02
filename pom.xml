@@ -325,6 +325,23 @@
                 <version>${checkstyle.version}</version>
                 <configuration>
                     <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                    <configLocation>${checkstyle.xml}</configLocation>
+                    <encoding>UTF-8</encoding>
+                    <consoleOutput>true</consoleOutput>
+                    <failsOnError>true</failsOnError>
+                    <linkXRef>false</linkXRef>
+                    <suppressionsLocation>${checkstyle.suppressions.xml}</suppressionsLocation>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <version>${spotbugs.version}</version>
+                <configuration>
+                    <effort>Max</effort>
+                    <threshold>Low</threshold>
+                    <xmlOutput>true</xmlOutput>
+                    <excludeFilterFile>src/main/spotbugs/filter.xml</excludeFilterFile>
                 </configuration>
             </plugin>
             <plugin>
