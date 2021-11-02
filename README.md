@@ -41,8 +41,6 @@ Sqs.queueName("my-queue")
    .prePoll(() -> {/* Do something */})
    // Action that occurs post SQS poll providing a Throwable if an Throwable event occurs
    .postPoll((Optional<Throwable> t) -> {/* do something */})
-   // perform action using the poll date
-   .lastPollDate(pollDate -> System.out::println)
    // get messages as observable
    .messages()
    // process the message
